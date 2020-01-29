@@ -1,7 +1,7 @@
-from template.table import Table, Record
+from template.table import *
 from template.index import Index
-
-
+from template.config import *
+from time import process_time
 class Query:
     """
     # Creates a Query object that can perform different queries on the specified table 
@@ -9,6 +9,7 @@ class Query:
 
     def __init__(self, table):
         self.table = table
+        self.currentRID = START_RID
         pass
 
     """
@@ -24,8 +25,27 @@ class Query:
     """
 
     def insert(self, *columns):
-        schema_encoding = '0' * self.table.num_columns
-        pass
+        if len(self.table.page_directory) == 0:
+            self.table.page_directory.insert(self.currentRID, 4)
+            for i in range(0, len(columns)):
+                self.table.pages.append(Page())
+
+        pageIndex = self.table.page_directory.get(self.table.page_directory.maxKey(self.currentRID))
+        if not self.table.pages[pageIndex].has_capacity():
+            self.table.page_directory.insert(int(self.currentRID), 4 + self.table.num_columns)
+            for i in range(0, len(columns) + 4):
+                self.table.pages.append(Page())
+
+        self.table.pages[pageIndex - 4 + RID_COLUMN].write(self.currentRID)
+        self.table.pages[pageIndex - 4 + TIMESTAMP_COLUMN].write(process_time())
+        self.table.pages[pageIndex - 4 + SCHEMA_ENCODING_COLUMN].write('0' * self.table.num_columns)
+        for i in range(0, len(columns)):
+            self.table.pages[pageIndex + i].write(columns[i])
+
+        self.currentRID = self.currentRID + 1
+
+
+
 
     """
     # Read a record with specified key

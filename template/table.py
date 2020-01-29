@@ -1,11 +1,7 @@
 from template.page import *
-from time import time
+from BTrees.IIBTree import IIBTree
 
-INDIRECTION_COLUMN = 0
-RID_COLUMN = 1
-TIMESTAMP_COLUMN = 2
-SCHEMA_ENCODING_COLUMN = 3
-
+import numpy as np
 
 class Record:
 
@@ -25,9 +21,10 @@ class Table:
         self.name = name
         self.key = key
         self.num_columns = num_columns
-        self.page_directory = {}
-        pass
+        schema_column = np.zeros(num_columns)
+        self.page_directory = IIBTree()
+        self.pages = [Page(),Page(),Page(),Page()]
 
     def __merge(self):
         pass
- 
+
