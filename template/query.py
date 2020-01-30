@@ -24,18 +24,13 @@ class Query:
     # Insert a record with specified columns
     """
 
-    def insert(self, *columns):
-        if len(self.table.page_directory) == 0:
-            self.table.page_directory.insert(self.currentRID, 4)
-            for i in range(0, len(columns)):
-                self.table.pages.append(Page())
-
+    def insert(self, *columns): #Try using public functions instead of changing private attributes
         pageIndex = self.table.page_directory.get(self.table.page_directory.maxKey(self.currentRID))
         if not self.table.pages[pageIndex].has_capacity():
             self.table.page_directory.insert(int(self.currentRID), 4 + self.table.num_columns)
             for i in range(0, len(columns) + 4):
                 self.table.pages.append(Page())
-
+        self.table.pages[pageIndex - 4 + INDIRECTION_COLUMN].write(0)
         self.table.pages[pageIndex - 4 + RID_COLUMN].write(self.currentRID)
         self.table.pages[pageIndex - 4 + TIMESTAMP_COLUMN].write(process_time())
         self.table.pages[pageIndex - 4 + SCHEMA_ENCODING_COLUMN].write('0' * self.table.num_columns)
@@ -51,7 +46,7 @@ class Query:
     # Read a record with specified key
     """
 
-    def select(self, key, query_columns):
+    def select(self, key, query_columns): #Positive column = want this value returned
         pass
 
     """

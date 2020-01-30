@@ -1,8 +1,6 @@
 from template.page import *
 from BTrees.IIBTree import IIBTree
 
-import numpy as np
-
 class Record:
 
     def __init__(self, rid, key, columns):
@@ -21,10 +19,11 @@ class Table:
         self.name = name
         self.key = key
         self.num_columns = num_columns
-        schema_column = np.zeros(num_columns)
-        self.page_directory = IIBTree()
-        self.pages = [Page(),Page(),Page(),Page()]
-
+        self.page_directory = IIBTree() #Use IOBTree if you want offset within the page
+        self.pages = [Page(),Page(),Page(),Page()] #Ready the initial Meta data columns
+        self.page_directory.insert(START_RID, 4) #Preallocate the first set of columns
+        for i in range(0, num_columns):
+            self.pages.append(Page())
     def __merge(self):
         pass
 

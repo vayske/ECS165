@@ -12,7 +12,7 @@ class Page:
         return False
 
     def write(self, value):
-
+        #Write in Physical Data
         self.num_records += 1
 
 
