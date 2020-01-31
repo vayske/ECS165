@@ -23,8 +23,14 @@ class Table:
     """
     def __init__(self, name, num_columns, key):
         self.name = name
-        self.key = key
+        self.key = key - 1
         self.num_columns = num_columns
+        self.num_base_records = 0
+        self.num_tail_records = 0
+        self.total_records = 0
+        self.base_records = []
+        self.tail_records = []
+        self.page_full = True
         self.page_directory = {}
         pass
 
