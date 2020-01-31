@@ -1,5 +1,5 @@
-from template.table import Table
-
+from template.table import *
+from BTrees.IIBTree import IIBTree
 """
 # optional: Indexes the specified column of the specified table to speed up select queries
 # This data structure is usually a B-Tree
@@ -9,6 +9,7 @@ from template.table import Table
 class Index:
 
     def __init__(self, table):
+        self.tree = IIBTree()
         pass
 
     """
@@ -23,6 +24,9 @@ class Index:
     """
 
     def create_index(self, table, column_number):
+        for i in range(0, table.num_base_records):
+            for j in range(0, table.base_records[i][column_number].num_records):
+                self.tree.insert(table.base_records[i][RID_COLUMN].data[j], table.base_records[i][column_number])
         pass
 
     """

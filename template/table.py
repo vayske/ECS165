@@ -1,5 +1,11 @@
 from template.page import *
-from BTrees.IIBTree import IIBTree
+from time import time
+
+INDIRECTION_COLUMN = 0
+RID_COLUMN = 1
+TIMESTAMP_COLUMN = 2
+SCHEMA_ENCODING_COLUMN = 3
+
 
 class Record:
 
@@ -17,13 +23,17 @@ class Table:
     """
     def __init__(self, name, num_columns, key):
         self.name = name
-        self.key = key
+        self.key = key - 1
         self.num_columns = num_columns
-        self.page_directory = IIBTree() #Use IOBTree if you want offset within the page
-        self.pages = [Page(),Page(),Page(),Page()] #Ready the initial Meta data columns
-        self.page_directory.insert(START_RID, 4) #Preallocate the first set of columns
-        for i in range(0, num_columns):
-            self.pages.append(Page())
-    def __merge(self):
+        self.num_base_records = 0
+        self.num_tail_records = 0
+        self.total_records = 0
+        self.base_records = []
+        self.tail_records = []
+        self.page_full = True
+        self.page_directory = {}
         pass
 
+    def __merge(self):
+        pass
+ 
