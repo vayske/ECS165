@@ -17,8 +17,7 @@ class Index:
     """
 
     def locate(self, value):
-        pass
-
+        return self.tree.get(value)
     """
     # optional: Create index on specific column
     """
@@ -26,8 +25,10 @@ class Index:
     def create_index(self, table, column_number):
         for i in range(0, table.num_base_records):
             for j in range(0, table.base_records[i][column_number].num_records):
-                self.tree.insert(table.base_records[i][RID_COLUMN].data[j], table.base_records[i][column_number])
-        pass
+                rid = int.from_bytes(table.base_records[i][RID_COLUMN].read(j),'big')
+                key = int.from_bytes(table.base_records[i][column_number].read(j),'big')
+                self.tree.insert(key, rid)
+                pass
 
     """
     # optional: Drop index of specific column
