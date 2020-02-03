@@ -23,7 +23,7 @@ class Table:
     """
     def __init__(self, name, num_columns, key):
         self.name = name
-        self.key = key - 1
+        self.key = key + 4
         self.num_columns = num_columns
         self.num_base_records = 0
         self.num_tail_records = 0

@@ -16,7 +16,7 @@ class Page:
     def write(self, value):
         next_index = self.num_records * 8
         self.data[next_index:next_index+8] = value[0:8]
-        self.num_records += 1
+        self.num_records = self.num_records + 1
         pass
 
     def change_value(self, slot, value):

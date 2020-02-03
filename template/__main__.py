@@ -17,7 +17,7 @@ for i in range(0, 10000):
 insert_time_1 = process_time()
 
 print("Inserting 10k records took:  \t\t\t", insert_time_1 - insert_time_0)
-#print(grades_table.page_directory)
+
 # Measuring update Performance
 update_cols = [
     [randrange(0, 100), None, None, None, None],
@@ -36,8 +36,7 @@ print("Updating 10k records took:  \t\t\t", update_time_1 - update_time_0)
 # Measuring Select Performance
 select_time_0 = process_time()
 for i in range(0, 10000):
-    a = query.select(choice(keys), [1, 1, 1, 1, 1])
-    #print(a)
+    query.select(choice(keys), [1, 1, 1, 1, 1])
 select_time_1 = process_time()
 print("Selecting 10k records took:  \t\t\t", select_time_1 - select_time_0)
 

@@ -21,12 +21,14 @@ class Index:
     """
     # optional: Create index on specific column
     """
+    def remove(self, value):
+        return self.tree.pop(value, None)
 
     def create_index(self, table, column_number):
         for i in range(0, table.num_base_records):
             for j in range(0, table.base_records[i][column_number].num_records):
-                rid = int.from_bytes(table.base_records[i][RID_COLUMN].read(j),'big')
-                key = int.from_bytes(table.base_records[i][column_number].read(j),'big')
+                rid = int.from_bytes(table.base_records[i][RID_COLUMN].read(j), 'big')
+                key = int.from_bytes(table.base_records[i][column_number].read(j), 'big')
                 self.tree.insert(key, rid)
                 pass
 
@@ -35,4 +37,5 @@ class Index:
     """
 
     def drop_index(self, table, column_number):
+        self.tree.clear()
         pass
