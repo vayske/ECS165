@@ -1,5 +1,5 @@
-from template.table import *
-from template.index import Index
+from lstore.table import *
+from lstore.index import Index
 from time import process_time
 
 class Query:
@@ -102,7 +102,7 @@ class Query:
         schema = schema_bytes[0:5].decode('utf-8')
         for i in range(0, self.table.num_columns):
             # --- Replace Origin Data with Updated Data --- #
-            if(schema[i] == '1' and query_columns[i] == '1'):
+            if(schema[i] == '1' and query_columns[i] == 1):
                 indirection_bytes = self.table.base_records[page_index][INDIRECTION_COLUMN].read(slot)
                 indirection = int.from_bytes(indirection_bytes, 'big')
                 updated_value_bytes = self.table.tail_records[page_index][i+4].read(indirection)

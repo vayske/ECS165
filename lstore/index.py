@@ -1,4 +1,4 @@
-from template.table import *
+from lstore.table import *
 from BTrees.IIBTree import IIBTree
 """
 # optional: Indexes the specified column of the specified table to speed up select queries
