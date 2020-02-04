@@ -8,11 +8,12 @@ class Page:
         self.data = bytearray(4096)
 
     def has_capacity(self):
-        if(self.num_records == 512):
-            return False
+        if(self.num_records == 512):                    # Since Everything is 64-bit Integer
+            return False                                # The Max Capacity will be 512 Records
         return True
         pass
 
+    # --- Value passed in is in Bytes --- #
     def write(self, value):
         next_index = self.num_records * 8
         self.data[next_index:next_index+8] = value[0:8]

@@ -25,6 +25,7 @@ class Index:
         return self.tree.pop(value, None)
 
     def create_index(self, table, column_number):
+        # --- Loop All Data to create Tree --- #
         for i in range(0, table.num_base_records):
             for j in range(0, table.base_records[i][column_number].num_records):
                 rid = int.from_bytes(table.base_records[i][RID_COLUMN].read(j), 'big')

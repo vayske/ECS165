@@ -28,10 +28,11 @@ class Table:
         self.num_base_records = 0
         self.num_tail_records = 0
         self.total_records = 0
-        self.base_records = []
-        self.tail_records = []
-        self.page_full = True
-        self.page_directory = {}
+        self.base_records = []              # List of Page lists, Each position contains
+        self.tail_records = []              # Indirection Page(base_records[i][INDIRECTION_COLUMN]),
+        self.page_full = True               # RID Page(base_records[i][RID_COLUMN]), ETC
+
+        self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
         pass
 
     def __merge(self):
