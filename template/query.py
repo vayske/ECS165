@@ -80,6 +80,7 @@ class Query:
 
     def select(self, key, query_columns):
         list = []
+        new_column = []
         if(self.has_index == False):                                # -----------------------------------------
             self.index.create_index(self.table, self.table.key)     # Create an Index Tree if there is not one
             self.has_index = True                                   # -----------------------------------------
@@ -88,25 +89,27 @@ class Query:
             print("Key Not Found\n")                                #
             return None                                             # ------------------------------------------
         page_index, slot = self.table.page_directory[rid]           # Use RID to Locate Actual Data
-
     # ------ Read the Origin Data ------ #
         for i in range(0, len(query_columns)):
-            colunm_value_bytes = self.table.base_records[page_index][i+4].read(slot)
-            query_columns[i] = int.from_bytes(colunm_value_bytes, 'big')
+            if(query_columns[i] == 1):
+                colunm_value_bytes = self.table.base_records[page_index][i+4].read(slot)
+                new_column.append(int.from_bytes(colunm_value_bytes, 'big'))
+            else:
+                new_column.append(None)
 
     # ------ Check Schema Code for Updated Data ------ #
         schema_bytes = self.table.base_records[page_index][SCHEMA_ENCODING_COLUMN].read(slot)
         schema = schema_bytes[0:5].decode('utf-8')
         for i in range(0, self.table.num_columns):
             # --- Replace Origin Data with Updated Data --- #
-            if(schema[i] == '1'):
+            if(schema[i] == '1' and query_columns[i] == '1'):
                 indirection_bytes = self.table.base_records[page_index][INDIRECTION_COLUMN].read(slot)
                 indirection = int.from_bytes(indirection_bytes, 'big')
                 updated_value_bytes = self.table.tail_records[page_index][i+4].read(indirection)
                 updated_value = int.from_bytes(updated_value_bytes, 'big')
-                query_columns[i] = updated_value
+                new_column[i] = updated_value
     # ------ Done ------ #
-        record = Record(rid, key, query_columns)
+        record = Record(rid, key, new_column)
         list.append(record)
         return list
 
