@@ -3,15 +3,20 @@ from lstore.config import *
 
 class Page:
 
-    def __init__(self):
+    def __init__(self, filename, meta):
         self.num_records = 0
+        self.pin = 0
+        self.dirty = False
+        self.lineage = 0                                # b for base page t for tail page
+        self.filename = filename                        #(os.cwd()/ + (b or t) + _(page_index) + c_(column_number))
+        self.meta = meta                                #(table, b or t, page_index, column_number)
         self.data = bytearray(4096)
 
     def has_capacity(self):
         if(self.num_records == 512):                    # Since Everything is 64-bit Integer
             return False                                # The Max Capacity will be 512 Records
         return True
-        pass
+        
 
     # --- Value passed in is in Bytes --- #
     def write(self, value):
