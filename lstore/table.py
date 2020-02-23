@@ -1,4 +1,4 @@
-from template.page import *
+from lstore.page import *
 from time import time
 
 INDIRECTION_COLUMN = 0
@@ -13,6 +13,8 @@ class Record:
         self.rid = rid
         self.key = key
         self.columns = columns
+    def __str__(self):
+        return str(self.columns)
 
 class Table:
 
@@ -23,9 +25,16 @@ class Table:
     """
     def __init__(self, name, num_columns, key):
         self.name = name
-        self.key = key
+        self.key = key + 4
         self.num_columns = num_columns
-        self.page_directory = {}
+        self.num_base_records = 0
+        self.num_tail_records = 0
+        self.total_records = 0
+        self.base_records = []              # List of Page lists, Each position contains
+        self.tail_records = []              # Indirection Page(base_records[i][INDIRECTION_COLUMN]),
+        self.page_full = True               # RID Page(base_records[i][RID_COLUMN]), ETC
+
+        self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
         pass
 
     def __merge(self):

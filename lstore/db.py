@@ -1,4 +1,4 @@
-from template.table import Table
+from lstore.table import Table
 
 class Database():
 
@@ -20,6 +20,7 @@ class Database():
     """
     def create_table(self, name, num_columns, key):
         table = Table(name, num_columns, key)
+        self.tables.append(table)
         return table
 
     """
