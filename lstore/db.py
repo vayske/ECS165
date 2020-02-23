@@ -90,7 +90,7 @@ class Database():
         with open(os.getcwd()+'/'+name+'/metadata.json','r') as fp:
             meta_dict = json.load(fp.read())
         fp.close()
-        table = Table(name, meta_dict['num_column'], meta_dict['key'], self.bufferpool, meta_dict['num_basepage'], meta_dict['num_tailpage'])
+        table = Table(name, meta_dict['num_column'], meta_dict['key'], self.bufferpool, meta_dict['num_basepage'], meta_dict['num_tailpage'], meta_dict['total_records'])
         return table
 
     """

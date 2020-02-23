@@ -9,7 +9,7 @@ class Query:
 
     def __init__(self, table):
         self.table = table
-        self.currentRID = 0
+        self.currentRID = table.total_records
         self.index = Index(self.table)
         self.has_index = False
         pass
@@ -43,8 +43,8 @@ class Query:
                 for i in range(0, length+4):                # for all fields(indirection, rid, etc)
                     new_base.append(Page())                 #
                     new_tail.append(Page())                 #
-                self.table.num_base_records += 1            #
-                self.table.num_tail_records += 1            #
+                self.table.num_base_page += 1            #
+                self.table.num_tail_page += 1            #
                 self.table.base_records.append(new_base)    #
                 self.table.tail_records.append(new_tail)    #
                 self.table.page_full = False                # -----------------------------------------

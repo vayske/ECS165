@@ -24,14 +24,14 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key, bufferpool, num_basepage, num_tailpage):
+    def __init__(self, name, num_columns, key, bufferpool, num_basepage, num_tailpage,total_records):
         self.name = name
         self.key = key + 4
         self.num_columns = num_columns
         self.bufferpool = bufferpool
         self.num_base_page = num_basepage
         self.num_tail_page = num_tailpage
-        self.total_records = 0
+        self.total_records = total_records
         self.base_records = []              # List of Page lists, Each position contains
         self.tail_records = []              # Indirection Page(base_records[i][INDIRECTION_COLUMN]),
         self.page_full = True               # RID Page(base_records[i][RID_COLUMN]), ETC
@@ -49,9 +49,9 @@ class Table:
         meta_dict = {}
         meta_dict.update({'key': self.key})
         meta_dict.update({'num_column': self.num_columns})
-        meta_dict.update({'num_basepage': num_base_page})
-        meta_dict.update({'num_tailpage': num_tail_page})
-
+        meta_dict.update({'num_basepage': self.num_base_page})
+        meta_dict.update({'num_tailpage': self.num_tail_page})
+        meta_dict.update({'total_records': self.total_records})
         with open(os.getcwd()+'/metadata.json',"w") as fp:
             json.dump(meta_dict, fp)
         fp.close()
