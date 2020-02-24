@@ -23,11 +23,13 @@ class Page:
         next_index = self.num_records * 8
         self.data[next_index:next_index+8] = value[0:8]
         self.num_records = self.num_records + 1
+        self.dirty = True
         pass
 
     def change_value(self, slot, value):
         index = slot * 8
         self.data[index:index+8] = value[0:8]
+        self.dirty = True
         pass
 
     def read(self, slot):
