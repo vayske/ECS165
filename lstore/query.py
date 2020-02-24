@@ -21,12 +21,26 @@ class Query:
     """
 
     def delete(self, key):
-       # from Page_Directory and
-        rid = self.index.remove(key)                                # Index Tree  
+        if(self.has_index == False):                                # ----------------------------
+            self.index.create_index(self.table, self.table.key)     # Remove the Corresponding RID
+            self.has_index = True                                   # from Page_Directory and
+        rid = self.index.remove(self.table.key,key)                                # Index Tree  
         if(rid == None):                                            # 
             print("Key Not Found")                                  #
-            return None                                             # *Actual Data is Not Deleted
-        self.table.page_directory[rid]                          # ----------------------------
+            return None
+        else:
+            page_index, slot = self.table.page_directory[rid]   
+            rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, RID_COLUMN)
+            ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN) 
+            indirection = int.from_bytes(self.table.bufferpool.get(index).read(slot), 'big')
+            invalid_rid_to_bytes = (-1).to_bytes(8,'big')
+            self.table.bufferpool.get(index).change_value(slot,invalid_rid_to_bytes)  
+            while indirection > 0:
+                self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
+                ind_index = self.table.bufferpool.getindex(self.table.name,"t", page_index, INDIRECTION_COLUMN)
+                indirection = int.from_bytes(self.table.bufferpool.get(index).read(indirection), 'big')
+            self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
+        del self.table.page_directory[rid]
         pass
 
     """
@@ -107,37 +121,35 @@ class Query:
         if(rid == None):                                            #
             print("Key Not Found\n")                                #
             return None                                             # ------------------------------------------
-        new_column = self.getLatestRecord(rid, query_columns)
-        list.append(Record(rid, key, new_column))
-        return list
-
-    def getLatestRecord(self, rid, query_columns):
-        page_index, slot = self.table.page_directory[rid]
-        new_column = []
-        # ------ Read the Origin Data ------ #
+        page_index, slot = self.table.page_directory[rid]           # Use RID to Locate Actual Data
+    # ------ Read the Origin Data ------ #
         for i in range(0, len(query_columns)):
-            if (query_columns[i] == 1):
-                index = self.table.bufferpool.getindex(self.table.name, "b", page_index, i + 4)
+            if(query_columns[i] == 1):
+                index = self.table.bufferpool.getindex(self.table.name, "b", page_index, i+4)
                 column_value_bytes = self.table.bufferpool.get(index).read(slot)
                 new_column.append(int.from_bytes(column_value_bytes, 'big'))
             else:
                 new_column.append(None)
-        # ------ Check Schema Code for Updated Data ------ #
+
+    # ------ Check Schema Code for Updated Data ------ #
         sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
         schema_bytes = self.table.bufferpool.get(sc_index).read(slot)
         schema = schema_bytes[0:5].decode('utf-8')
         for i in range(0, self.table.num_columns):
             # --- Replace Origin Data with Updated Data --- #
-            if (schema[i] == '1' and query_columns[i] == 1):
+            if(schema[i] == '1' and query_columns[i] == 1):
                 ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
                 indirection_bytes = self.table.bufferpool.get(ind_index).read(slot)
                 indirection = int.from_bytes(indirection_bytes, 'big')
-                tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i + 4)
-                updated_value_bytes = self.table.tail_records[page_index][i + 4].read(indirection)
+                tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
+                updated_value_bytes = self.table.tail_records[page_index][i+4].read(indirection)
                 updated_value = int.from_bytes(updated_value_bytes, 'big')
                 new_column[i] = updated_value
-        # ------ Done ------ #
-        return new_column
+    # ------ Done ------ #
+        record = Record(rid, key, new_column)
+        list.append(record)
+        return list
+
     """
     # Update a record with specified key and columns
     """
