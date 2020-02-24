@@ -10,7 +10,7 @@ class Query:
     def __init__(self, table):
         self.table = table
         self.currentRID = table.total_records
-        self.index = Index(self.table)
+        self.index = Index(table.num_columns)
         self.index.create_index(self.table,self.table.key)
         self.has_index = True
         pass
@@ -86,7 +86,8 @@ class Query:
     # ------ Done ------ #
             slot = self.table.bufferpool.get(index).num_records - 1
             self.table.page_directory[self.currentRID] = (base_pages_index, slot)   # Add to Page_Directory
-            self.index.tree.insert(currentRID,columns[self.table.key-4])
+            for i in range(0, self.table.num_columns):
+                self.index.trees[i].insert(columns[i],self.currentRID)
             self.currentRID += 1
             self.table.total_records += 1
             if not(self.table.bufferpool.get(index).has_capacity()):
@@ -101,10 +102,10 @@ class Query:
     def select(self, key, column, query_columns):
         list = []
         new_column = []
-        if(self.has_index == False):                                # -----------------------------------------
-            self.index.create_index(self.table, column+4)     # Create an Index Tree if there is not one
-            self.has_index = True                                   # -----------------------------------------
-        rid = self.index.locate(key)                                # Find RID using Index Tree
+        # if(self.has_index == False):                                # -----------------------------------------
+        #     self.index.create_index(self.table, column+4)     # Create an Index Tree if there is not one
+        #     self.has_index = True                                   # -----------------------------------------
+        rid = self.index.locate(column,key)                                # Find RID using Index Tree
         if(rid == None):                                            #
             print("Key Not Found\n")                                #
             return None                                             # ------------------------------------------

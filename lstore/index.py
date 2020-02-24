@@ -1,5 +1,6 @@
 from lstore.table import *
 from BTrees.IIBTree import IIBTree
+import numpy as np
 """
 # optional: Indexes the specified column of the specified table to speed up select queries
 # This data structure is usually a B-Tree
@@ -8,21 +9,23 @@ from BTrees.IIBTree import IIBTree
 
 class Index:
 
-    def __init__(self, table):
-        self.tree = IIBTree()
+    def __init__(self, tree_num):
+        self.trees = []
+        for i in range(0, tree_num):
+            self.trees.append(IIBTree())
         pass
 
     """
     # returns the location of all records with the given value
     """
 
-    def locate(self, value):
-        return self.tree.get(value)
+    def locate(self, column,value):
+        return self.trees[column].get(value)
     """
     # optional: Create index on specific column
     """
-    def remove(self, value):
-        return self.tree.pop(value, None)
+    def remove(self, column, value):
+        return self.trees[column].pop(value, None)
 
     def create_index(self, table, column_number):
         # --- Loop All Data to create Tree --- #
@@ -39,6 +42,6 @@ class Index:
     # optional: Drop index of specific column
     """
 
-    def drop_index(self, table, column_number):
-        self.tree.clear()
+    def drop_index(self, column_number):
+        self.trees[column_number].clear()
         pass
