@@ -64,7 +64,7 @@ class Bufferpool:
             data_str = page.data
             file.write(data_str)
             file.close()
-        del self.directory[self.pool[evict_index].location]
+        del self.directory[self.pool[evict_index].meta]
 
     def getindex(self, table, bt, page, column):
         i = self.directory[(table, bt, page, column)]
