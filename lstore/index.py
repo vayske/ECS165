@@ -26,7 +26,7 @@ class Index:
 
     def create_index(self, table, column_number):
         # --- Loop All Data to create Tree --- #
-        for i in range(0, table.base_page):
+        for i in range(0, table.num_base_page):
             for j in range(0, table.base_records[i][column_number].num_records):
                 index1 = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
                 rid = int.from_bytes(table.bufferpool.get(index1).read(j), 'big')
