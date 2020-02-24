@@ -40,7 +40,7 @@ class Bufferpool:
         self.empty.append(evict_index)
         if self.pool[evict_index].dirty:
             page = self.pool[evict_index]
-            file = open(page.path, "wb")
+            file = open(page.filename, "wb")
             data_str = page.data
             file.write(data_str)
             file.close()
