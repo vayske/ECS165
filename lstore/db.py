@@ -2,7 +2,7 @@ from lstore.table import Table
 from lstore.page import *
 from collections import defaultdict
 import os, sys, json
-
+import numpy as np
 
 class Bufferpool:
 
@@ -10,7 +10,7 @@ class Bufferpool:
         self.db = db
         self.empty = [i for i in range(90)]
         self.used = []
-        self.pinned = np.zero(90, dtype=int)
+        self.pinned = np.zeros(90, dtype=int)
         self.LRUIndex = np.empty(90, dtype=int)
         self.pool = [Page("", ()) for i in range(90)]  # empty page, will be replace by real page
         self.directory = defaultdict(lambda: -1)  # (table, b or t, page_index, column_number) -> index in pool
@@ -37,13 +37,22 @@ class Bufferpool:
         empty_index = self.empty.pop()
         self.used.append(empty_index)
         self.LRUIndex[empty_index] = len(self.used) - 1
-        self.pool[empty_index] = page
+        self.write(empty_index, page=page)
         return empty_index
+
+    def write(self, index, page=-1, value=-1):
+        if(page != -1):
+            self.pool[index] = page
+        if value != -1:
+            self.pool[index].write(value)
+
+    def get(self, index):
+        return self.pool[index]
 
     def evict(self):
         evict_index = 0
         for i in range(0, len(self.used)):  # Evict the least recently used and unpinned page
-            if (pinned[self.used[i]] == 0):
+            if (self.pinned[self.used[i]] == 0):
                 evict_index = self.used.pop(i)
                 self.LRUIndex[evict_index] = -1
                 break
@@ -55,7 +64,7 @@ class Bufferpool:
             data_str = page.data
             file.write(data_str)
             file.close()
-        del self.directory[page.location]
+        del self.directory[self.pool[evict_index].location]
 
     def getindex(self, table, bt, page, column):
         i = self.directory[(table, bt, page, column)]
@@ -94,7 +103,7 @@ class Database():
     """
 
     def create_table(self, name, num_columns, key):
-        table = Table(name, num_columns, key, self.bufferpool)
+        table = Table(name, num_columns, key, self.bufferpool,0,0,0)
         self.tables.update({name: table})
         return table
 

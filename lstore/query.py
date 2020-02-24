@@ -56,10 +56,10 @@ class Query:
      #-----------Assign new page to Bufferpool--------------------#   
                 for i in range(len(new_base)):
                     index = self.table.bufferpool.getindex(self.table.name, "b", new_page_index, i)
-                    self.table.bufferpool[index] = new_base[i]    
+                    self.table.bufferpool.write(index,page=new_base[i])
                 for i in range(len(new_tail)):
                     index = self.table.bufferpool.getindex(self.table.name, "t", new_page_index, i)
-                    self.table.bufferpool[index] = new_tail[i] 
+                    self.table.bufferpool.write(index,page=new_tail[i])
     # ------ Write Meta-data to pages in Bytes ------ #
             base_pages_index = self.table.num_base_page - 1
             schema_encoding = '0' * length
@@ -69,25 +69,25 @@ class Query:
             rid_to_bytes = self.currentRID.to_bytes(8, 'big')
             time_to_bytes = int(process_time()).to_bytes(8, 'big')
             index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, INDIRECTION_COLUMN)
-            self.table.bufferpool[index].write(indirection_to_bytes)
+            self.table.bufferpool.write(index,value=indirection_to_bytes)
             index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, RID_COLUMN)
-            self.table.bufferpool[index].write(rid_to_bytes)
+            self.table.bufferpool.write(index,value=rid_to_bytes)
             index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, TIMESTAMP_COLUMN)
-            self.table.bufferpool[index].write(time_to_bytes)
+            self.table.bufferpool.write(index,value=time_to_bytes)
             index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, SCHEMA_ENCODING_COLUMN)
-            self.table.bufferpool[index].write(schema_to_bytes)
+            self.table.bufferpool.write(index,value=schema_to_bytes)
     # ------ End Writing Meta-Data ------ #
     # ------ Write Actual Data to Pages ------ #
             for i in range(self.table.key, length+4):
                 value_to_bytes = columns[i-4].to_bytes(8, 'big')
                 index = index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, i)
-                self.table.bufferpool[index].write(value_to_bytes)
+                self.table.bufferpool.write(index,value=value_to_bytes)
     # ------ Done ------ #
-            slot = self.table.bufferpool[index].num_records - 1
+            slot = self.table.bufferpool.get(index).num_records - 1
             self.table.page_directory[self.currentRID] = (base_pages_index, slot)   # Add to Page_Directory
             self.currentRID += 1
             self.table.total_records += 1
-            if not(self.table.bufferpool[index].has_capacity()):
+            if not(self.table.bufferpool.get(index).has_capacity()):
                 self.table.page_full = True
     
         pass
