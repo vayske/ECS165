@@ -37,7 +37,7 @@ class Index:
                 if rid == -1:
                     continue
                 indirection = int.from_bytes(table.bufferpool.get(ind_index).read(j),'big')
-                newcolumn = []
+                new_column = []
                 for k in range(0, table.num_columns):
                     latest_index = table.bufferpool.getindex(table.name, "t", i, k)
                     new_column.append(int.from_bytes(table.bufferpool.get(latest_index).read(indirection), 'big'))
