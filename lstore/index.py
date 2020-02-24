@@ -31,7 +31,7 @@ class Index:
         # --- Loop All Data to create Tree --- #
         for i in range(table.num_base_page):
             rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
-            ind_index = table.bufferpool.getindex(table.name, "b", i, column_number)
+            ind_index = table.bufferpool.getindex(table.name, "b", i, INDIRECTION_COLUMN)
             for j in range(table.bufferpool.get(rid_index).num_records):
                 rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
                 if rid == -1:
