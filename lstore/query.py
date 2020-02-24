@@ -21,9 +21,6 @@ class Query:
     """
 
     def delete(self, key):
-        if(self.has_index == False):                                # ----------------------------
-            self.index.create_index(self.table, self.table.key)     # Remove the Corresponding RID
-            self.has_index = True                                   # from Page_Directory and
         rid = self.index.remove(self.table.key,key)                                # Index Tree  
         if(rid == None):                                            # 
             print("Key Not Found")                                  #
@@ -114,9 +111,6 @@ class Query:
     def select(self, key, column, query_columns):
         list = []
         new_column = []
-        # if(self.has_index == False):                                # -----------------------------------------
-        #     self.index.create_index(self.table, column+4)     # Create an Index Tree if there is not one
-        #     self.has_index = True                                   # -----------------------------------------
         rid = self.index.locate(column,key)                                # Find RID using Index Tree
         if(rid == None):                                            #
             print("Key Not Found\n")                                #
@@ -155,9 +149,6 @@ class Query:
     """
 
     def update(self, key, *columns):
-        if(self.has_index == False):                                # -------------------------
-            self.index.create_index(self.table, self.table.key)     # Check for Index Creation
-            self.has_index = True                                   # -------------------------
         rid = self.index.locate(key)
         if(rid == None):
             print("Key Not Found")
@@ -203,9 +194,6 @@ class Query:
 
     def sum(self, start_range, end_range, aggregate_column_index):
         result = 0
-        if(self.has_index == False):                                # -----------------------------
-            self.index.create_index(self.table, self.table.key)     # Check Index Creation
-            self.has_index = True                                   # -----------------------------
         for key in range(start_range, end_range+1):
             rid = self.index.locate(key)
             if(rid == None):
@@ -213,16 +201,20 @@ class Query:
                 continue
         # ------ If an Key exists, Read the Corresponding Value ------ #
             page_index, slot = self.table.page_directory[rid]
-            schema_to_bytes = self.table.base_records[page_index][SCHEMA_ENCODING_COLUMN].read(slot)
+            sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+            schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
             schema = schema_to_bytes[0:5].decode('utf-8')
         # ------ Check for Updated Value ------ #
             if(schema[aggregate_column_index] == '1'):
-                indirection_to_bytes = self.table.base_records[page_index][INDIRECTION_COLUMN].read(slot)
+                ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+                indirection_to_bytes = self.table.bufferpool.get(ind_index).read(slot)
                 indirection = int.from_bytes(indirection_to_bytes, 'big')
-                value_to_bytes = self.table.tail_records[page_index][aggregate_column_index+4].read(indirection)
+                tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, aggregate_column_index+4)
+                value_to_bytes = self.table.bufferpool.get(tail_index).read(indirection)
                 value = int.from_bytes(value_to_bytes, 'big')
             else:
-                value_to_bytes = self.table.base_records[page_index][aggregate_column_index+4].read(slot)
+                base_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, aggregate_column_index+4)
+                value_to_bytes = self.table.bufferpool.get(base_index).read(slot)
                 value = int.from_bytes(value_to_bytes, 'big')
         # ------ Sum up ------ #
             result += value
