@@ -11,7 +11,8 @@ class Query:
         self.table = table
         self.currentRID = table.total_records
         self.index = Index(self.table)
-        self.has_index = False
+        self.index.create_index(self.table,self.table.key)
+        self.has_index = True
         pass
 
     """
@@ -80,11 +81,12 @@ class Query:
     # ------ Write Actual Data to Pages ------ #
             for i in range(self.table.key, length+4):
                 value_to_bytes = columns[i-4].to_bytes(8, 'big')
-                index = index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, i)
+                index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, i)
                 self.table.bufferpool.write(index,value=value_to_bytes)
     # ------ Done ------ #
             slot = self.table.bufferpool.get(index).num_records - 1
             self.table.page_directory[self.currentRID] = (base_pages_index, slot)   # Add to Page_Directory
+            self.index.tree.insert(currentRID,columns[self.table.key-4])
             self.currentRID += 1
             self.table.total_records += 1
             if not(self.table.bufferpool.get(index).has_capacity()):
