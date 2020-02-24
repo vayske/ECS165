@@ -41,8 +41,8 @@ class Query:
     #---------- Create New pages ------------------#     
                 new_page_index = self.table.num_base_page
                 num_column = self.table.num_columns+4
-                basefilename = os.getcwd() + "/b_" + str(new_page_index)
-                tailfilename = os.getcwd() + "/t_" + str(new_page_index)
+                basefilename = self.table.disk_directory + "/b_" + str(new_page_index)
+                tailfilename = self.table.disk_directory + "/t_" + str(new_page_index)
                 for i in range(num_column):
                     file = open(basefilename + "c_"+str(i), "w+")
                     file.close()                       

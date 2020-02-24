@@ -26,6 +26,9 @@ class Table:
     """
     def __init__(self, name, num_columns, key, bufferpool, num_basepage, num_tailpage,total_records):
         self.name = name
+        self.disk_directory = os.getcwd() + "/" + self.name
+        if not os.path.isdir(self.disk_directory):
+            os.makedirs(self.disk_directory)
         self.key = key + 4
         self.num_columns = num_columns
         self.bufferpool = bufferpool
@@ -37,7 +40,7 @@ class Table:
         self.page_full = True               # RID Page(base_records[i][RID_COLUMN]), ETC
 
         self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
-        page_dict = os.getcwd() + "/page_dict.json"
+        page_dict = self.disk_directory + "/page_dict.json"
         file = open(page_dict, "w+")
         file.close()
         if os.stat(page_dict).st_size > 0:
@@ -52,11 +55,11 @@ class Table:
         meta_dict.update({'num_basepage': self.num_base_page})
         meta_dict.update({'num_tailpage': self.num_tail_page})
         meta_dict.update({'total_records': self.total_records})
-        with open(os.getcwd()+'/metadata.json',"w") as fp:
+        with open(self.disk_directory + '/metadata.json',"w") as fp:
             json.dump(meta_dict, fp)
         fp.close()
         
-        with open(os.getcwd()+'/page_dict.json',"w") as fp:
+        with open(self.disk_directory +'/page_dict.json',"w") as fp:
             json.dump(self.page_directory,fp)
         fp.close()
 
