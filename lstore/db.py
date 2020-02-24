@@ -6,8 +6,7 @@ import numpy as np
 
 class Bufferpool:
 
-    def __init__(self, db):
-        self.db = db
+    def __init__(self):
         self.empty = [i for i in range(90)]
         self.used = []
         self.pinned = np.zeros(90, dtype=int)
@@ -33,7 +32,7 @@ class Bufferpool:
             page = Page(filename, meta)
             page.num_records = int.from_bytes(data_str[0:8],'big')
             page.lineage = int.from_bytes(data_str[8:16],'big')
-            page.data = data_str[16:4112]
+            page.data = data_str[16:]
         else:
             page = Page(filename, meta)
 
@@ -87,7 +86,7 @@ class Database():
 
     def __init__(self):
         self.tables = {}
-        self.bufferpool = Bufferpool(self)
+        self.bufferpool = Bufferpool()
         pass
 
     def open(self, path):
