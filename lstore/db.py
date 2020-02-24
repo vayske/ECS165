@@ -51,7 +51,7 @@ class Bufferpool:
         if i == -1:
             if len(self.used) == len(self.pool):
                 self.evict()
-        path = os.getcwd() + "/" + str(bt) + "_" + str(page) + "c_" +str(column)
+        path = os.getcwd() + "/" + bt + "_" + str(page) + "c_" +str(column)
         i = self.get_from_disk(path, (table, bt, page, column))
         self.directory.update({(table, bt, page, column): i})
         return i
