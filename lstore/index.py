@@ -1,6 +1,6 @@
 from lstore.table import *
 from BTrees.IIBTree import IIBTree
-import numpy as np
+import lstore.query as query
 """
 # optional: Indexes the specified column of the specified table to speed up select queries
 # This data structure is usually a B-Tree
@@ -34,8 +34,12 @@ class Index:
             index2 = table.bufferpool.getindex(table.name, "b", i, column_number)
             for j in range(table.bufferpool.get(index1).num_records):
                 rid = int.from_bytes(table.bufferpool.get(index1).read(j), 'big')
-                key = int.from_bytes(table.bufferpool.get(index2).read(j), 'big')
-                self.tree.insert(key, rid)
+                if rid == -1:
+                    continue
+                new_column = query.Query.getLatestRecord(rid, table.num_columns)
+                for i in range(0, table.num_columns):
+                    self.trees[i].insert(new_column[i], rid)
+
                 pass
 
     """
