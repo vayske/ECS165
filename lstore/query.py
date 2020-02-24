@@ -42,14 +42,14 @@ class Query:
                 new_page_index = self.table.num_base_page
                 num_column = self.table.num_columns+4
                 basefilename = os.getcwd() + "/b_" + str(new_page_index)
-                tailfilename = os.getcwd() + "/b_" + str(new_page_index)
+                tailfilename = os.getcwd() + "/t_" + str(new_page_index)
                 for i in range(num_column):
                     file = open(basefilename + "c_"+str(i), "w+")
                     file.close()                       
                     file = open(tailfilename + "c_"+str(i), "w+")   
                     file.close()          
                 new_base = [Page(basefilename + "c_"+str(i), (self.table.name, "b", new_page_index, i)) for i in range(num_column)]
-                new_tail = [Page(tailfilename + "c_"+str(i), (self.table.name, "b", new_page_index, i)) for i in range(num_column)]                               
+                new_tail = [Page(tailfilename + "c_"+str(i), (self.table.name, "t", new_page_index, i)) for i in range(num_column)]                               
                 self.table.num_base_page += 1            
                 self.table.num_tail_page += 1             
                 self.table.page_full = False 
