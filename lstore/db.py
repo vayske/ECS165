@@ -20,7 +20,9 @@ class Bufferpool:
         for page in self.pool:
             if page.dirty:
                 file = open(page.filename, "wb")
-                data_str = page.data
+                num_records_to_bytes = page.num_records.to_bytes(8,'big')
+                lineage_to_bytes = page.lineage.to_bytes(8,'big')
+                data_str = num_records_to_bytes + lineage_to_bytes + page.data
                 file.write(data_str)
                 file.close()
 
@@ -29,7 +31,9 @@ class Bufferpool:
             file = open(filename, "rb")
             data_str = file.read()
             page = Page(filename, meta)
-            page.data = data_str
+            page.num_records = int.from_bytes(data_str[0:8],'big')
+            page.lineage = int.from_bytes(data_str[8:16],'big')
+            page.data = data_str[16:4112]
         else:
             page = Page(filename, meta)
 
@@ -61,7 +65,9 @@ class Bufferpool:
         if self.pool[evict_index].dirty:
             page = self.pool[evict_index]
             file = open(page.filename, "wb")
-            data_str = page.data
+            num_records_to_bytes = page.num_records.to_bytes(8,'big')
+            lineage_to_bytes = page.lineage.to_bytes(8,'big')
+            data_str = num_records_to_bytes + lineage_to_bytes + page.data
             file.write(data_str)
             file.close()
         del self.directory[self.pool[evict_index].meta]
