@@ -11,7 +11,7 @@ class Query:
         self.table = table
         self.currentRID = table.total_records
         self.index = Index(table.num_columns)
-        self.index.create_index(self.table,self.table.key)
+        self.index.create_index(self.table)
         self.has_index = True
         pass
 

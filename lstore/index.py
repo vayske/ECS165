@@ -27,19 +27,22 @@ class Index:
     def remove(self, column, value):
         return self.trees[column].pop(value, None)
 
-    def create_index(self, table, column_number):
+    def create_index(self, table):
         # --- Loop All Data to create Tree --- #
         for i in range(table.num_base_page):
-            index1 = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
-            index2 = table.bufferpool.getindex(table.name, "b", i, column_number)
-            for j in range(table.bufferpool.get(index1).num_records):
-                rid = int.from_bytes(table.bufferpool.get(index1).read(j), 'big')
+            rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
+            ind_index = table.bufferpool.getindex(table.name, "b", i, column_number)
+            for j in range(table.bufferpool.get(rid_index).num_records):
+                rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
                 if rid == -1:
                     continue
-                new_column = query.Query.getLatestRecord(rid, table.num_columns)
-                for i in range(0, table.num_columns):
-                    self.trees[i].insert(new_column[i], rid)
-
+                indirection = int.from_bytes(table.bufferpool.get(ind_index).read(j),'big')
+                newcolumn = []
+                for k in range(0, table.num_columns):
+                    latest_index = table.bufferpool.getindex(table.name, "t", i, k)
+                    new_column.append(int.from_bytes(table.bufferpool.get(latest_index).read(indirection), 'big'))
+                self.trees[k].insert(new_column[k], rid)
+                #new_column = query.Query.getLatestRecord(rid, table.num_columns)            
                 pass
 
     """
