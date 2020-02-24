@@ -110,19 +110,23 @@ class Query:
     # ------ Read the Origin Data ------ #
         for i in range(0, len(query_columns)):
             if(query_columns[i] == 1):
-                colunm_value_bytes = self.table.base_records[page_index][i+4].read(slot)
-                new_column.append(int.from_bytes(colunm_value_bytes, 'big'))
+                index = self.table.bufferpool.getindex(self.table.name, "b", page_index, i+4)
+                column_value_bytes = self.table.bufferpool.get(index).read(slot)
+                new_column.append(int.from_bytes(column_value_bytes, 'big'))
             else:
                 new_column.append(None)
 
     # ------ Check Schema Code for Updated Data ------ #
-        schema_bytes = self.table.base_records[page_index][SCHEMA_ENCODING_COLUMN].read(slot)
+        sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+        schema_bytes = self.table.bufferpool.get(sc_index).read(slot)
         schema = schema_bytes[0:5].decode('utf-8')
         for i in range(0, self.table.num_columns):
             # --- Replace Origin Data with Updated Data --- #
             if(schema[i] == '1' and query_columns[i] == 1):
-                indirection_bytes = self.table.base_records[page_index][INDIRECTION_COLUMN].read(slot)
+                ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+                indirection_bytes = self.table.bufferpool.get(ind_index).read(slot)
                 indirection = int.from_bytes(indirection_bytes, 'big')
+                tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
                 updated_value_bytes = self.table.tail_records[page_index][i+4].read(indirection)
                 updated_value = int.from_bytes(updated_value_bytes, 'big')
                 new_column[i] = updated_value
