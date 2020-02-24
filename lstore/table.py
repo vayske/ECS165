@@ -35,10 +35,10 @@ class Table:
         self.num_base_page = num_basepage
         self.num_tail_page = num_tailpage
         self.total_records = total_records
-        self.base_records = []              # List of Page lists, Each position contains
-        self.tail_records = []              # Indirection Page(base_records[i][INDIRECTION_COLUMN]),
-        self.page_full = True               # RID Page(base_records[i][RID_COLUMN]), ETC
-
+        if total_records % 512 == 0:
+            self.page_full = True               
+        else:
+            self.page_full = False
         self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
         page_dict = self.disk_directory + "/page_dict.json"
         file = open(page_dict, "w+")
