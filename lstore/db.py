@@ -90,7 +90,7 @@ class Database():
         pass
 
     def open(self, path):
-        if not os.path.exist(path):
+        if not os.path.isdir(path):
             os.makedirs(path)
         os.chdir(path)
 

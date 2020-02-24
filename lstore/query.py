@@ -96,11 +96,11 @@ class Query:
     # Read a record with specified key
     """
 
-    def select(self, key, query_columns):
+    def select(self, key, column, query_columns):
         list = []
         new_column = []
         if(self.has_index == False):                                # -----------------------------------------
-            self.index.create_index(self.table, self.table.key)     # Create an Index Tree if there is not one
+            self.index.create_index(self.table, column+4)     # Create an Index Tree if there is not one
             self.has_index = True                                   # -----------------------------------------
         rid = self.index.locate(key)                                # Find RID using Index Tree
         if(rid == None):                                            #
