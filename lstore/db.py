@@ -21,7 +21,8 @@ class Bufferpool:
                 file = open(page.filename, "wb")
                 num_records_to_bytes = page.num_records.to_bytes(8,'big')
                 lineage_to_bytes = page.lineage.to_bytes(8,'big')
-                data_str = num_records_to_bytes + lineage_to_bytes + page.data
+                #data_str = num_records_to_bytes + lineage_to_bytes + page.data
+                data_str = page.data
                 file.write(data_str)
                 file.close()
 
@@ -30,9 +31,10 @@ class Bufferpool:
             file = open(filename, "rb")
             data_str = file.read()
             page = Page(filename, meta)
-            page.num_records = int.from_bytes(data_str[0:8],'big')
-            page.lineage = int.from_bytes(data_str[8:16],'big')
-            page.data = data_str[16:]
+            #page.num_records = int.from_bytes(data_str[0:8],'big')
+            #page.lineage = int.from_bytes(data_str[8:16],'big')
+            #print(page.num_records, page.lineage)
+            page.data = data_str
         else:
             page = Page(filename, meta)
 
@@ -66,7 +68,8 @@ class Bufferpool:
             file = open(page.filename, "wb")
             num_records_to_bytes = page.num_records.to_bytes(8,'big')
             lineage_to_bytes = page.lineage.to_bytes(8,'big')
-            data_str = num_records_to_bytes + lineage_to_bytes + page.data
+            #data_str = num_records_to_bytes + lineage_to_bytes + page.data
+            data_str = page.data
             file.write(data_str)
             file.close()
         del self.directory[self.pool[evict_index].meta]
@@ -95,7 +98,7 @@ class Database():
         os.chdir(path)
 
     def close(self):
-        for table in self.tables.items():
+        for _, table in self.tables.items():
             table.bufferpool.flush_pool()
             table.write_meta_to_disk()
         pass
@@ -109,15 +112,16 @@ class Database():
 
     def create_table(self, name, num_columns, key):
         table = Table(name, num_columns, key, self.bufferpool,0,0,0)
-        self.tables.update({name: table})
+        self.tables[name] = table
         return table
 
     def get_table(self, name):
         with open(os.getcwd() + '/' + name + '/metadata.json', 'r') as fp:
-            meta_dict = json.load(fp.read())
+            meta_dict = json.load(fp)
         fp.close()
         table = Table(name, meta_dict['num_column'], meta_dict['key'], self.bufferpool, meta_dict['num_basepage'],
                       meta_dict['num_tailpage'], meta_dict['total_records'])
+        self.tables[name] = table
         return table
 
     """

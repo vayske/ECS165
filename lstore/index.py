@@ -1,6 +1,6 @@
 from lstore.table import *
 from BTrees.IIBTree import IIBTree
-import lstore.query as query
+#from lstore.query import query
 """
 # optional: Indexes the specified column of the specified table to speed up select queries
 # This data structure is usually a B-Tree
@@ -29,10 +29,10 @@ class Index:
 
     def create_index(self, table):
         # --- Loop All Data to create Tree --- #
-        for i in range(table.num_base_page):
+        for i in range(0, table.num_base_page):
             rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
             ind_index = table.bufferpool.getindex(table.name, "b", i, INDIRECTION_COLUMN)
-            for j in range(table.bufferpool.get(rid_index).num_records):
+            for j in range(0, table.bufferpool.get(rid_index).num_records+512):
                 rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
                 if rid == -1:
                     continue

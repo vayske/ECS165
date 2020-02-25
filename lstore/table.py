@@ -45,7 +45,7 @@ class Table:
         file.close()
         if os.stat(page_dict).st_size > 0:
             with open(page_dict, "r") as fp:
-                self.page_directory = json.loads(fp.read())
+                self.page_directory = json.loads(fp)
             fp.close()
 
     def write_meta_to_disk(self):
