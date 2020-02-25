@@ -41,12 +41,18 @@ class Table:
             self.page_full = False
         self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
         page_dict = self.disk_directory + "/page_dict.json"
-        file = open(page_dict, "w+")
-        file.close()
+        print("page directory json file has size: " + str(os.stat(page_dict).st_size))
         if os.stat(page_dict).st_size > 0:
+            print("read page_directory json file")
             with open(page_dict, "r") as fp:
-                self.page_directory = json.loads(fp)
+                self.page_directory = json.load(fp)
             fp.close()
+            print("page_directory load from disk")
+            page_index, slot = self.page_directory[str(0)]
+            print("location for rid 0 = " + str(page_index) + " , " + str(slot))
+        else:
+            file = open(page_dict, "w+")
+            file.close()
 
     def write_meta_to_disk(self):
         meta_dict = {}
@@ -62,6 +68,9 @@ class Table:
         with open(self.disk_directory +'/page_dict.json',"w") as fp:
             json.dump(self.page_directory,fp)
         fp.close()
+        print("page_directory written to disk")
+        page_index, slot = self.page_directory[0]
+        print("location for rid 0 = " + str(page_index) + " , " + str(slot))
 
     def __merge(self):
         pass

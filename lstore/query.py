@@ -11,7 +11,7 @@ class Query:
         self.table = table
         self.currentRID = table.total_records
         self.index = Index(table.num_columns)
-        self.index.create_index(self.table)
+        self.index.create_keyindex(self.table)
         self.has_index = True
         pass
 
@@ -21,13 +21,14 @@ class Query:
     """
 
     def delete(self, key):
-        ridList = self.index.remove(self.table.key,key)                                # Index Tree
+        ridList = self.index.locate(self.table.key,key)                                # Index Tree
         if(len(ridList) == 0):                                            #
             print("Key Not Found")                                  #
             return None
         else:
+            self.index.remove(self.table.key, key)
             for rid in ridList:
-                page_index, slot = self.table.page_directory[rid]
+                page_index, slot = self.table.page_directory[str(rid)]
                 rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, RID_COLUMN)
                 ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
                 indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(slot), 'big')
@@ -109,6 +110,7 @@ class Query:
                     self.index.trees[i].__setitem__(columns[i], tempList)
                 else:
                     self.index.trees[i].insert(columns[i],[self.currentRID])
+
             self.currentRID += 1
             self.table.total_records += 1
             if not(self.table.bufferpool.get(index).has_capacity()):
@@ -126,7 +128,7 @@ class Query:
         """"
         for i in range(512):
             record = []
-            iindex = self.table.bufferpool.getindex(self.table.name, "b", 0, self.table.key)
+            iindex = self.table.bufferpool.getindex(self. table.name, "b", 0, self.table.key)
             column_value = int.from_bytes(self.table.bufferpool.get(iindex).read(i),'big')
             print(column_value)
         """""
@@ -141,7 +143,9 @@ class Query:
 
 
         for rid in ridList:
-            page_index, slot = self.table.page_directory[rid]           # Use RID to Locate Actual Data
+            #print("look for rid: " + str(rid) + " in page_directory")
+            page_index, slot = self.table.page_directory[str(rid)]           # Use RID to Locate Actual Data
+            #print("got result: page_index = " + str(page_index) + " slot = " + str(slot))
             # ------ Read the Origin Data ------ #
             for i in range(0, len(query_columns)):
                 if(query_columns[i] == 1):

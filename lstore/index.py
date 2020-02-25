@@ -23,6 +23,8 @@ class Index:
 
     def locate(self, column, value):
         ridList = self.trees[column].get(value)
+        print("In locate function: trying to locate value:" + str(value))
+        print("got rid: " + str(ridList))
         return ridList
     """
     # optional: Create index on specific column
@@ -31,6 +33,7 @@ class Index:
         return self.trees[column].pop(value, None)
 
     def create_index(self, table):
+        print("in create indexs function")
         # --- Loop All Data to create Tree --- #
         #rid_index = table.bufferpool.getindex(table.name, "b", 0, 4)
         for i in range(0, table.num_base_page):
@@ -56,16 +59,23 @@ class Index:
                 pass
     
     def create_keyindex(self, table):
+        print("in create keyindex function")
         for i in range(0, table.num_base_page):
             rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
             key_index = table.bufferpool.getindex(table.name, "b", i, table.key)
             for j in range(0, table.bufferpool.get(rid_index).num_records):
                 rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
                 key_val = int.from_bytes(table.bufferpool.get(key_index).read(j),'big')
-                print("rid: " + str(rid) + " key_val: " + str(key_val))
+                #print("rid: " + str(rid) + " key_val: " + str(key_val))
                 if rid == -1:
                     continue
-                self.trees[table.key].insert(key_val, rid)  
+                #print("try to locate before insert")
+                #rid_list = self.locate(table.key-4, key_val)
+                #print(rid_list)
+                self.trees[table.key-4].insert(key_val, [rid])
+                #print("rid inserted. now try to locate it")  
+                #rid_list =  self.locate(table.key-4, key_val)
+                #print(rid_list)
                 
     """"
     # optional: Drop index of specific column
