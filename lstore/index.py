@@ -1,6 +1,8 @@
 from lstore.table import *
-from BTrees.IIBTree import IIBTree
-#from lstore.query import query
+
+from BTrees.IOBTree import IOBTree
+#import lstore.query as query
+
 """
 # optional: Indexes the specified column of the specified table to speed up select queries
 # This data structure is usually a B-Tree
@@ -12,15 +14,16 @@ class Index:
     def __init__(self, tree_num):
         self.trees = []
         for i in range(0, tree_num):
-            self.trees.append(IIBTree())
+            self.trees.append(IOBTree())
         pass
 
     """
     # returns the location of all records with the given value
     """
 
-    def locate(self, column,value):
-        return self.trees[column].get(value)
+    def locate(self, column, value):
+        ridList = self.trees[column].get(value)
+        return ridList
     """
     # optional: Create index on specific column
     """
@@ -40,8 +43,14 @@ class Index:
                 new_column = []
                 for k in range(0, table.num_columns):
                     latest_index = table.bufferpool.getindex(table.name, "t", i, k)
-                    new_column.append(int.from_bytes(table.bufferpool.get(latest_index).read(indirection), 'big'))
-                self.trees[k].insert(new_column[k], rid)
+                    val = int.from_bytes(table.bufferpool.get(latest_index).read(indirection), 'big')
+                    if (self.index.trees[k].has_key(val)):
+                        tempList = self.index.trees[k].get(val)
+                        tempList.append(self.currentRID)
+                        self.index.trees[k].__setitem__(val, tempList)
+                    else:
+                        self.index.trees[k].insert(val, [rid])
+
                 #new_column = query.Query.getLatestRecord(rid, table.num_columns)            
                 pass
 
