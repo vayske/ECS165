@@ -55,6 +55,12 @@ class Query:
                 basefilename = self.table.disk_directory + "/b_" + str(new_page_index)
                 tailfilename = self.table.disk_directory + "/t_" + str(new_page_index)
                 for i in range(num_column):
+                    """""
+                    file = open(basefilename + "c_"+str(i), "wb+")
+                    file.close()                       
+                    file = open(tailfilename + "c_"+str(i), "wb+")   
+                    file.close()     
+                    """"" 
                     file = open(basefilename + "c_"+str(i), "w+")
                     file.close()                       
                     file = open(tailfilename + "c_"+str(i), "w+")   
@@ -117,7 +123,13 @@ class Query:
     def select(self, key, column, query_columns):
         list = []
         new_column = []
-
+        """"
+        for i in range(512):
+            record = []
+            iindex = self.table.bufferpool.getindex(self.table.name, "b", 0, self.table.key)
+            column_value = int.from_bytes(self.table.bufferpool.get(iindex).read(i),'big')
+            print(column_value)
+        """""
         # if(self.has_index == False):                                # -----------------------------------------
         #     self.index.create_index(self.table, column+4)     # Create an Index Tree if there is not one
         #     self.has_index = True                                   # -----------------------------------------
@@ -192,6 +204,12 @@ class Query:
     # ------ Write Indirection for Base and Tail Indirection Page ------ #
                 new_tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
                 new_tail_indirection = self.table.bufferpool.get(new_tail_indirection_index).num_records - 1
+                #if tail_indirection == 0:
+                    #if new_tail_indirection < 100:
+                     #   print("In update : key = " + str(key) + "columns = " + str(columns))
+                     #   print("base indirection column = " + str(tail_indirection))
+                     #   print("tail indirection slot = "+ str(new_tail_indirection))
+                      #  print("tail page num_records = "+ str(self.table.bufferpool.get(new_tail_indirection_index).num_records))
             tail_indirection_to_bytes = new_tail_indirection.to_bytes(8,'big')
             indir_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
             self.table.bufferpool.get(indir_index).change_value(slot, tail_indirection_to_bytes)

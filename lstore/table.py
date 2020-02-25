@@ -50,7 +50,7 @@ class Table:
 
     def write_meta_to_disk(self):
         meta_dict = {}
-        meta_dict.update({'key': self.key})
+        meta_dict.update({'key': self.key-4})
         meta_dict.update({'num_column': self.num_columns})
         meta_dict.update({'num_basepage': self.num_base_page})
         meta_dict.update({'num_tailpage': self.num_tail_page})

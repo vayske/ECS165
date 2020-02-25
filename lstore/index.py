@@ -32,6 +32,7 @@ class Index:
 
     def create_index(self, table):
         # --- Loop All Data to create Tree --- #
+        #rid_index = table.bufferpool.getindex(table.name, "b", 0, 4)
         for i in range(0, table.num_base_page):
             rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
             ind_index = table.bufferpool.getindex(table.name, "b", i, INDIRECTION_COLUMN)
@@ -41,8 +42,8 @@ class Index:
                     continue
                 indirection = int.from_bytes(table.bufferpool.get(ind_index).read(j),'big')
                 new_column = []
-                for k in range(0, table.num_columns):
-                    latest_index = table.bufferpool.getindex(table.name, "t", i, k)
+                for k in range(table.num_columns):
+                    latest_index = table.bufferpool.getindex(table.name, "t", i, k + table.key)
                     val = int.from_bytes(table.bufferpool.get(latest_index).read(indirection), 'big')
                     if (self.trees[k].has_key(val)):
                         tempList = self.trees[k].get(val)
@@ -53,10 +54,22 @@ class Index:
 
                 #new_column = query.Query.getLatestRecord(rid, table.num_columns)            
                 pass
-
-    """
+    
+    def create_keyindex(self, table):
+        for i in range(0, table.num_base_page):
+            rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
+            key_index = table.bufferpool.getindex(table.name, "b", i, table.key)
+            for j in range(0, table.bufferpool.get(rid_index).num_records):
+                rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
+                key_val = int.from_bytes(table.bufferpool.get(key_index).read(j),'big')
+                print("rid: " + str(rid) + " key_val: " + str(key_val))
+                if rid == -1:
+                    continue
+                self.trees[table.key].insert(key_val, rid)  
+                
+    """"
     # optional: Drop index of specific column
-    """
+    """""
 
     def drop_index(self, column_number):
         self.trees[column_number].clear()
