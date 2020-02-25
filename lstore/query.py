@@ -21,23 +21,24 @@ class Query:
     """
 
     def delete(self, key):
-        rid = self.index.remove(self.table.key,key)                                # Index Tree  
-        if(rid == None):                                            # 
+        ridList = self.index.remove(self.table.key,key)                                # Index Tree
+        if(len(ridList) == 0):                                            #
             print("Key Not Found")                                  #
             return None
         else:
-            page_index, slot = self.table.page_directory[rid]   
-            rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, RID_COLUMN)
-            ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN) 
-            indirection = int.from_bytes(self.table.bufferpool.get(index).read(slot), 'big')
-            invalid_rid_to_bytes = (-1).to_bytes(8,'big')
-            self.table.bufferpool.get(index).change_value(slot,invalid_rid_to_bytes)  
-            while indirection > 0:
+            for rid in ridList:
+                page_index, slot = self.table.page_directory[rid]
+                rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, RID_COLUMN)
+                ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+                indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(slot), 'big')
+                invalid_rid_to_bytes = (-1).to_bytes(8,'big')
+                self.table.bufferpool.get(page_index).change_value(slot,invalid_rid_to_bytes)
+                while indirection > 0:
+                    self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
+                    ind_index = self.table.bufferpool.getindex(self.table.name,"t", page_index, INDIRECTION_COLUMN)
+                    indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(indirection), 'big')
                 self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
-                ind_index = self.table.bufferpool.getindex(self.table.name,"t", page_index, INDIRECTION_COLUMN)
-                indirection = int.from_bytes(self.table.bufferpool.get(index).read(indirection), 'big')
-            self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
-        del self.table.page_directory[rid]
+                del self.table.page_directory[rid]
         pass
 
     """
