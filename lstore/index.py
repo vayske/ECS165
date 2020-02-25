@@ -35,7 +35,7 @@ class Index:
         for i in range(0, table.num_base_page):
             rid_index = table.bufferpool.getindex(table.name, "b", i, RID_COLUMN)
             ind_index = table.bufferpool.getindex(table.name, "b", i, INDIRECTION_COLUMN)
-            for j in range(0, table.bufferpool.get(rid_index).num_records+512):
+            for j in range(0, table.bufferpool.get(rid_index).num_records):
                 rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
                 if rid == -1:
                     continue
@@ -44,12 +44,12 @@ class Index:
                 for k in range(0, table.num_columns):
                     latest_index = table.bufferpool.getindex(table.name, "t", i, k)
                     val = int.from_bytes(table.bufferpool.get(latest_index).read(indirection), 'big')
-                    if (self.index.trees[k].has_key(val)):
-                        tempList = self.index.trees[k].get(val)
-                        tempList.append(self.currentRID)
-                        self.index.trees[k].__setitem__(val, tempList)
+                    if (self.trees[k].has_key(val)):
+                        tempList = self.trees[k].get(val)
+                        tempList.append(rid)
+                        self.trees[k].__setitem__(val, tempList)
                     else:
-                        self.index.trees[k].insert(val, [rid])
+                        self.trees[k].insert(val, [rid])
 
                 #new_column = query.Query.getLatestRecord(rid, table.num_columns)            
                 pass
