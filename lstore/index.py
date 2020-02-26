@@ -1,0 +1,66 @@
+from lstore.table import *
+
+from BTrees.IOBTree import IOBTree
+#import lstore.query as query
+
+"""
+# optional: Indexes the specified column of the specified table to speed up select queries
+# This data structure is usually a B-Tree
+"""
+
+
+class Index:
+
+    def __init__(self, tree_num):
+        self.trees = []
+        for i in range(0, tree_num):
+            self.trees.append(IOBTree())
+        pass
+
+    """
+    # returns the location of all records with the given value
+    """
+
+    def locate(self, column, value):
+        ridList = self.trees[column].get(value)
+        return ridList
+    """
+    # optional: Create index on specific column
+    """
+    def remove(self, column, value):
+        return self.trees[column].pop(value, None)
+
+    def create_index(self, table):
+        # --- Loop All Data to create Tree --- #
+        for i in range(0, table.num_base_page):
+            rid_index = table.bufferpool.getindex(table.name, "b", i, 0, RID_COLUMN)
+            ind_index = table.bufferpool.getindex(table.name, "b", i, 0, INDIRECTION_COLUMN)
+            sc_index = table.bufferpool.getindex(table.name, "b", i, 0, SCHEMA_ENCODING_COLUMN)
+            for j in range(0, table.bufferpool.get(rid_index).num_records):
+                rid = int.from_bytes(table.bufferpool.get(rid_index).read(j), 'big')
+                indirection = int.from_bytes(table.bufferpool.get(ind_index).read(j), 'big')
+                schema = table.bufferpool.get(sc_index).read(j)[0:5].decode('utf-8')
+                for k in range(0, table.num_columns):
+                    if(schema[k] == '1'):
+                        latest_index = table.bufferpool.getindex(table.name, "t", i, int(indirection/512), k + table.key)
+                        val = int.from_bytes(table.bufferpool.get(latest_index).read(indirection%512), 'big')
+                    else:
+                        latest_index = table.bufferpool.getindex(table.name, "b", i, 0, k + table.key)
+                        val = int.from_bytes(table.bufferpool.get(latest_index).read(j), 'big')
+                    if (self.trees[k].has_key(val)):
+                        tempList = self.trees[k].get(val)
+                        tempList.append(rid)
+                        self.trees[k].__setitem__(val, tempList)
+                    else:
+                        self.trees[k].insert(val, [rid])
+
+                #new_column = query.Query.getLatestRecord(rid, table.num_columns)            
+                pass
+
+    """
+    # optional: Drop index of specific column
+    """
+
+    def drop_index(self, column_number):
+        self.trees[column_number].clear()
+        pass
