@@ -179,9 +179,7 @@ class Query:
     """
     # Update a record with specified key and columns
     """
-    from time import process_time
     def update(self, key, *columns):
-        update_time_0 = process_time()
         ridList = self.index.locate(self.table.key - 4, key)
         rid = ridList[0]
         if(len(ridList) == 0):
@@ -243,8 +241,6 @@ class Query:
         time_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, TIMESTAMP_COLUMN)
         self.table.bufferpool.write(time_index, value=time_to_bytes)
         self.table.bufferpool.get(time_index).dirty = True
-        update_time_1 = process_time()
-        print("Updating 10k records took:  \t\t\t", update_time_1 - update_time_0)
 
     """
     :param start_range: int         # Start of the key range to aggregate 

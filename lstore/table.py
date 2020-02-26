@@ -41,8 +41,8 @@ class Table:
             self.page_full = False
         self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
         page_dict = self.disk_directory + "/page_dict.json"
-        print("page directory json file has size: " + str(os.stat(page_dict).st_size))
-        if os.stat(page_dict).st_size > 0:
+        #print("page directory json file has size: " + str(os.stat(page_dict).st_size))
+        if os.path.isfile(page_dict) and os.stat(page_dict).st_size > 0:
             print("read page_directory json file")
             with open(page_dict, "r") as fp:
                 self.page_directory = json.load(fp)
