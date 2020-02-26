@@ -9,9 +9,10 @@ class Query:
 
     def __init__(self, table):
         self.table = table
-        self.currentRID = table.total_records
+        self.currentRID = table.total_base_records
+        self.currentTail_ID = table.total_tail_records
         self.index = Index(table.num_columns)
-        self.index.create_keyindex(self.table)
+        self.index.create_index(self.table)
         self.has_index = True
         pass
 
@@ -21,21 +22,21 @@ class Query:
     """
 
     def delete(self, key):
-        ridList = self.index.remove(self.table.key - 4,key)                                # Index Tree
+        ridList = self.index.remove(self.table.key - NUM_META_COLUMN,key)                                # Index Tree
         if(len(ridList) == 0):                                            #
             print("Key Not Found")                                  #
             return None
         else:
             for rid in ridList:
                 page_index, slot = self.table.page_directory[str(rid)]
-                rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, RID_COLUMN)
-                ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+                rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, RID_COLUMN)
+                ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, INDIRECTION_COLUMN)
                 indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(slot), 'big')
                 invalid_rid_to_bytes = (-1).to_bytes(8,'big', signed=True)
                 self.table.bufferpool.get(page_index).change_value(slot,invalid_rid_to_bytes)
                 while indirection > 0:
                     self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
-                    ind_index = self.table.bufferpool.getindex(self.table.name,"t", page_index, INDIRECTION_COLUMN)
+                    ind_index = self.table.bufferpool.getindex(self.table.name,"t", page_index, 0, INDIRECTION_COLUMN)
                     indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(indirection), 'big')
                 self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
                 del self.table.page_directory[str(rid)]
@@ -51,7 +52,7 @@ class Query:
             if(self.table.page_full):  
     #---------- Create New pages ------------------#     
                 new_page_index = self.table.num_base_page
-                num_column = self.table.num_columns+4
+                num_column = self.table.num_columns+NUM_META_COLUMN
                 basefilename = self.table.disk_directory + "/b_" + str(new_page_index)
                 tailfilename = self.table.disk_directory + "/t_" + str(new_page_index)
                 for i in range(num_column):
@@ -61,21 +62,21 @@ class Query:
                     file = open(tailfilename + "c_"+str(i), "wb+")   
                     file.close()     
                     """"" 
-                    file = open(basefilename + "c_"+str(i), "w+")
+                    file = open(basefilename + "p_0c_"+str(i), "w+")
                     file.close()                       
-                    file = open(tailfilename + "c_"+str(i), "w+")   
+                    file = open(tailfilename + "p_0c_"+str(i), "w+")   
                     file.close()          
-                new_base = [Page(basefilename + "c_"+str(i), (self.table.name, "b", new_page_index, i)) for i in range(num_column)]
-                new_tail = [Page(tailfilename + "c_"+str(i), (self.table.name, "t", new_page_index, i)) for i in range(num_column)]                               
+                new_base = [Page(basefilename + "p_0c_"+str(i), (self.table.name, "b", new_page_index, 0, i)) for i in range(num_column)]
+                new_tail = [Page(tailfilename + "p_0c_"+str(i), (self.table.name, "t", new_page_index, 0, i)) for i in range(num_column)]                               
                 self.table.num_base_page += 1            
                 self.table.num_tail_page += 1             
                 self.table.page_full = False 
      #-----------Assign new page to Bufferpool--------------------#   
                 for i in range(len(new_base)):
-                    index = self.table.bufferpool.getindex(self.table.name, "b", new_page_index, i)
+                    index = self.table.bufferpool.getindex(self.table.name, "b", new_page_index, 0, i)
                     self.table.bufferpool.write(index,page=new_base[i])
                 for i in range(len(new_tail)):
-                    index = self.table.bufferpool.getindex(self.table.name, "t", new_page_index, i)
+                    index = self.table.bufferpool.getindex(self.table.name, "t", new_page_index, 0, i)
                     self.table.bufferpool.write(index,page=new_tail[i])
     # ------ Write Meta-data to pages in Bytes ------ #
             base_pages_index = self.table.num_base_page - 1
@@ -85,19 +86,19 @@ class Query:
             schema_to_bytes[0:4] = bytearray(schema_encoding, 'utf-8')
             rid_to_bytes = self.currentRID.to_bytes(8, 'big')
             time_to_bytes = int(process_time()).to_bytes(8, 'big')
-            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, INDIRECTION_COLUMN)
+            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, 0, INDIRECTION_COLUMN)
             self.table.bufferpool.write(index,value=indirection_to_bytes)
-            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, RID_COLUMN)
+            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, 0, RID_COLUMN)
             self.table.bufferpool.write(index,value=rid_to_bytes)
-            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, TIMESTAMP_COLUMN)
+            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, 0, TIMESTAMP_COLUMN)
             self.table.bufferpool.write(index,value=time_to_bytes)
-            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, SCHEMA_ENCODING_COLUMN)
+            index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, 0, SCHEMA_ENCODING_COLUMN)
             self.table.bufferpool.write(index,value=schema_to_bytes)
     # ------ End Writing Meta-Data ------ #
     # ------ Write Actual Data to Pages ------ #
-            for i in range(self.table.key, length+4):
-                value_to_bytes = columns[i-4].to_bytes(8, 'big')
-                index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, i)
+            for i in range(self.table.key, length+NUM_META_COLUMN):
+                value_to_bytes = columns[i-NUM_META_COLUMN].to_bytes(8, 'big')
+                index = self.table.bufferpool.getindex(self.table.name, "b", base_pages_index, 0, i)
                 self.table.bufferpool.write(index,value=value_to_bytes)
     # ------ Done ------ #
             slot = self.table.bufferpool.get(index).num_records - 1
@@ -111,10 +112,9 @@ class Query:
                     self.index.trees[i].insert(columns[i],[self.currentRID])
 
             self.currentRID += 1
-            self.table.total_records += 1
+            self.table.total_base_records += 1
             if not(self.table.bufferpool.get(index).has_capacity()):
                 self.table.page_full = True
-    
         pass
 
     """
@@ -124,23 +124,10 @@ class Query:
     def select(self, key, column, query_columns):
         list = []
         new_column = []
-        """"
-        for i in range(512):
-            record = []
-            iindex = self.table.bufferpool.getindex(self. table.name, "b", 0, self.table.key)
-            column_value = int.from_bytes(self.table.bufferpool.get(iindex).read(i),'big')
-            print(column_value)
-        """""
-        # if(self.has_index == False):                                # -----------------------------------------
-        #     self.index.create_index(self.table, column+4)     # Create an Index Tree if there is not one
-        #     self.has_index = True                                   # -----------------------------------------
         ridList = self.index.locate(column,key)                                # Find RID using Index Tree
         if(len(ridList) == 0):                                            #
-
             print("Key Not Found\n")                                #
             return None
-
-
         for rid in ridList:
             #print("look for rid: " + str(rid) + " in page_directory")
             page_index, slot = self.table.page_directory[str(rid)]           # Use RID to Locate Actual Data
@@ -148,23 +135,22 @@ class Query:
             # ------ Read the Origin Data ------ #
             for i in range(0, len(query_columns)):
                 if(query_columns[i] == 1):
-                    index = self.table.bufferpool.getindex(self.table.name, "b", page_index, i+4)
+                    index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, i+NUM_META_COLUMN)
                     column_value_bytes = self.table.bufferpool.get(index).read(slot)
                     new_column.append(int.from_bytes(column_value_bytes, 'big'))
                 else:
                     new_column.append(None)
-
             # ------ Check Schema Code for Updated Data ------ #
-            sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+            sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, SCHEMA_ENCODING_COLUMN)
             schema_bytes = self.table.bufferpool.get(sc_index).read(slot)
             schema = schema_bytes[0:5].decode('utf-8')
             for i in range(0, self.table.num_columns):
                 # --- Replace Origin Data with Updated Data --- #
                 if(schema[i] == '1' and query_columns[i] == 1):
-                    ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+                    ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, INDIRECTION_COLUMN)
                     indirection_bytes = self.table.bufferpool.get(ind_index).read(slot)
                     indirection = int.from_bytes(indirection_bytes, 'big')
-                    tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
+                    tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, i+NUM_META_COLUMN)
                     updated_value_bytes = self.table.bufferpool.get(tail_index).read(indirection)
                     updated_value = int.from_bytes(updated_value_bytes, 'big')
                     new_column[i] = updated_value
@@ -172,17 +158,13 @@ class Query:
             self.table.bufferpool.pinned[page_index] = self.table.bufferpool.pinned[page_index] - 1
             record = Record(rid, key, new_column)
             list.append(record)
-
-
         return list
 
     """
     # Update a record with specified key and columns
     """
-    from time import process_time
     def update(self, key, *columns):
-        update_time_0 = process_time()
-        ridList = self.index.locate(self.table.key - 4, key)
+        ridList = self.index.locate(self.table.key - NUM_META_COLUMN, key)
         rid = ridList[0]
         if(len(ridList) == 0):
             print("Key Not Found")
@@ -190,26 +172,26 @@ class Query:
 
         page_index, slot = self.table.page_directory[str(rid)]
 # ------ Read Schema Code for Checking Updated Data ------ #
-        sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+        sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, SCHEMA_ENCODING_COLUMN)
         new_schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
-        tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+        tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, INDIRECTION_COLUMN)
         tail_indirection_to_bytes = self.table.bufferpool.get(tail_indirection_index).read(slot)
         tail_indirection = int.from_bytes(tail_indirection_to_bytes, 'big')
         for i in range(0, len(columns)):
             value_to_bytes = bytearray(8)
         # --- Read an Updated Data if exists --- #
             if(new_schema_to_bytes[i] == ord('1')):
-                value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
+                value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, i+NUM_META_COLUMN)
                 value_to_bytes = self.table.bufferpool.get(value_index).read(tail_indirection)
         # --- Write the new Updating Data to tail --- #
             if(columns[i] != None):
                 new_schema_to_bytes[i] = ord('1')
                 value_to_bytes = columns[i].to_bytes(8, 'big')
-            value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
-            self.table.bufferpool.get(value_index).dirty = True
+            value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, i+NUM_META_COLUMN)
+            #self.table.bufferpool.get(value_index).dirty = True
             self.table.bufferpool.write(value_index, value=value_to_bytes)
 # ------ Write Indirection for Base and Tail Indirection Page ------ #
-            new_tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
+            new_tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, i+NUM_META_COLUMN)
             new_tail_indirection = self.table.bufferpool.get(new_tail_indirection_index).num_records - 1
             #if tail_indirection == 0:
                 #if new_tail_indirection < 100:
@@ -218,34 +200,32 @@ class Query:
                  #   print("tail indirection slot = "+ str(new_tail_indirection))
                   #  print("tail page num_records = "+ str(self.table.bufferpool.get(new_tail_indirection_index).num_records))
         tail_indirection_to_bytes = new_tail_indirection.to_bytes(8,'big')
-        indir_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+        indir_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, INDIRECTION_COLUMN)
         self.table.bufferpool.get(indir_index).change_value(slot, tail_indirection_to_bytes)
         if(tail_indirection == 0):
             slot_to_bytes = slot.to_bytes(8,'big')
-            slot_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, INDIRECTION_COLUMN)
+            slot_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, INDIRECTION_COLUMN)
             self.table.bufferpool.write(slot_index, value=slot_to_bytes)
-            self.table.bufferpool.get(slot_index).dirty = True
+            #self.table.bufferpool.get(slot_index).dirty = True
         else:
-            tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, INDIRECTION_COLUMN)
+            tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, INDIRECTION_COLUMN)
             self.table.bufferpool.write(tail_index, value=tail_indirection_to_bytes)
-            self.table.bufferpool.get(tail_index).dirty = True
+            #self.table.bufferpool.get(tail_index).dirty = True
 # ------ Write new Meta-Data for Tail Pages ------ #
         rid_to_bytes = rid.to_bytes(8,'big')
         time_to_bytes = int(process_time()).to_bytes(8,'big')
-        rid_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, RID_COLUMN)
+        rid_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, RID_COLUMN)
         self.table.bufferpool.write(rid_index, value=rid_to_bytes)
-        self.table.bufferpool.get(rid_index).dirty = True
-        b_sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+        #self.table.bufferpool.get(rid_index).dirty = True
+        b_sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, SCHEMA_ENCODING_COLUMN)
         self.table.bufferpool.get(b_sc_index).change_value(slot, new_schema_to_bytes)
-        t_sc_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, SCHEMA_ENCODING_COLUMN)
+        t_sc_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, SCHEMA_ENCODING_COLUMN)
         self.table.bufferpool.write(t_sc_index, value=new_schema_to_bytes)
-        self.table.bufferpool.get(t_sc_index).dirty = True
-        time_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, TIMESTAMP_COLUMN)
+        #self.table.bufferpool.get(t_sc_index).dirty = True
+        time_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, TIMESTAMP_COLUMN)
         self.table.bufferpool.write(time_index, value=time_to_bytes)
-        self.table.bufferpool.get(time_index).dirty = True
-        update_time_1 = process_time()
-        print("Updating 10k records took:  \t\t\t", update_time_1 - update_time_0)
-
+        #self.table.bufferpool.get(time_index).dirty = True
+        self.table.total_tail_records += 1
     """
     :param start_range: int         # Start of the key range to aggregate 
     :param end_range: int           # End of the key range to aggregate 
@@ -255,26 +235,26 @@ class Query:
     def sum(self, start_range, end_range, aggregate_column_index):
         result = 0
         for key in range(start_range, end_range+1):
-            ridList = self.index.locate(self.table.key - 4, key)
+            ridList = self.index.locate(self.table.key - NUM_META_COLUMN, key)
             if(ridList == None or len(ridList) == 0):
                 result += 0
                 continue
             for rid in ridList:
         # ------ If an Key exists, Read the Corresponding Value ------ #
                 page_index, slot = self.table.page_directory[str(rid)]
-                sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+                sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, SCHEMA_ENCODING_COLUMN)
                 schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
                 schema = schema_to_bytes[0:5].decode('utf-8')
         # ------ Check for Updated Value ------ #
                 if(schema[aggregate_column_index] == '1'):
-                    ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+                    ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, INDIRECTION_COLUMN)
                     indirection_to_bytes = self.table.bufferpool.get(ind_index).read(slot)
                     indirection = int.from_bytes(indirection_to_bytes, 'big')
-                    tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, aggregate_column_index+4)
+                    tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, 0, aggregate_column_index+NUM_META_COLUMN)
                     value_to_bytes = self.table.bufferpool.get(tail_index).read(indirection)
                     value = int.from_bytes(value_to_bytes, 'big')
                 else:
-                    base_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, aggregate_column_index+4)
+                    base_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, aggregate_column_index+NUM_META_COLUMN)
                     value_to_bytes = self.table.bufferpool.get(base_index).read(slot)
                     value = int.from_bytes(value_to_bytes, 'big')
         # ------ Sum up ------ #

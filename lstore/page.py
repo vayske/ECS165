@@ -8,8 +8,8 @@ class Page:
         self.pin = 0
         self.dirty = False
         self.lineage = 0                                # b for base page t for tail page
-        self.filename = filename                        #(os.cwd()/ + (b or t) + _(page_index) + c_(column_number))
-        self.meta = meta                                #(table, b or t, page_index, column_number)
+        self.filename = filename                        #(os.cwd()/ + (b or t) + _(page_index) + p_(page_number) + c_(column_number))
+        self.meta = meta                                #(table, b or t, page_index, page_number, column_number)
         self.data = bytearray(4096)
 
     def has_capacity(self):
