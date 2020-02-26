@@ -1,6 +1,7 @@
 from lstore.table import Table
 from lstore.page import *
 from collections import defaultdict
+from collections import deque
 import os, sys, json
 import numpy as np
 
@@ -8,9 +9,8 @@ class Bufferpool:
 
     def __init__(self):
         self.empty = [i for i in range(90)]
-        self.used = []
+        self.used = deque()
         self.pinned = np.zeros(90, dtype=int)
-        self.LRUIndex = np.empty(90, dtype=int)
         self.pool = [Page("", ()) for i in range(90)]  # empty page, will be replace by real page
         self.directory = defaultdict(lambda: -1)  # (table, b or t, page_index, column_number) -> index in pool
         # -1 if not in pool(need to get from file)
@@ -68,7 +68,6 @@ class Bufferpool:
         page.dirty = False;
         empty_index = self.empty.pop()
         self.used.append(empty_index)
-        self.LRUIndex[empty_index] = len(self.used) - 1
         self.write(empty_index, page=page)
         return empty_index
 
@@ -77,16 +76,16 @@ class Bufferpool:
             self.pool[index] = page
         if value != -1:
             self.pool[index].write(value)
-
+        # self.pinned[index] = self.pinned[index] - 1
     def get(self, index):
+        # self.pinned[index] = self.pinned[index] - 1
         return self.pool[index]
 
     def evict(self):
         evict_index = 0
         for i in range(0, len(self.used)):  # Evict the least recently used and unpinned page
             if (self.pinned[self.used[i]] == 0):
-                evict_index = self.used.pop(i)
-                self.LRUIndex[evict_index] = -1
+                evict_index = self.used.popleft()
                 break
         # evict oldest page
         self.empty.append(evict_index)
@@ -117,6 +116,7 @@ class Bufferpool:
             path = os.getcwd() + "/" + table + "/" + bt + "_" + str(page) + "c_" + str(column)
             i = self.get_from_disk(path, (table, bt, page, column))
             self.directory.update({(table, bt, page, column): i})
+        # self.pinned[i] = self.pinned[i] + 1
         return i
 
 

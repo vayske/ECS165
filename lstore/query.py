@@ -169,76 +169,82 @@ class Query:
                     updated_value = int.from_bytes(updated_value_bytes, 'big')
                     new_column[i] = updated_value
             # ------ Done ------ #
+            self.table.bufferpool.pinned[page_index] = self.table.bufferpool.pinned[page_index] - 1
             record = Record(rid, key, new_column)
             list.append(record)
+
 
         return list
 
     """
     # Update a record with specified key and columns
     """
-
+    from time import process_time
     def update(self, key, *columns):
-        ridList = self.index.locate(0, key)
+        update_time_0 = process_time()
+        ridList = self.index.locate(self.table.key - 4, key)
+        rid = ridList[0]
         if(len(ridList) == 0):
             print("Key Not Found")
             return None
-        for rid in ridList:
-            page_index, slot = self.table.page_directory[str(rid)]
-    # ------ Read Schema Code for Checking Updated Data ------ #
-            sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
-            new_schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
-            tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
-            tail_indirection_to_bytes = self.table.bufferpool.get(tail_indirection_index).read(slot)
-            tail_indirection = int.from_bytes(tail_indirection_to_bytes, 'big')
-            for i in range(0, len(columns)):
-                value_to_bytes = bytearray(8)
-            # --- Read an Updated Data if exists --- #
-                if(new_schema_to_bytes[i] == ord('1')):
-                    value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
-                    value_to_bytes = self.table.bufferpool.get(value_index).read(tail_indirection)
-            # --- Write the new Updating Data to tail --- #
-                if(columns[i] != None):
-                    new_schema_to_bytes[i] = ord('1')
-                    value_to_bytes = columns[i].to_bytes(8, 'big')
+
+        page_index, slot = self.table.page_directory[str(rid)]
+# ------ Read Schema Code for Checking Updated Data ------ #
+        sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+        new_schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
+        tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+        tail_indirection_to_bytes = self.table.bufferpool.get(tail_indirection_index).read(slot)
+        tail_indirection = int.from_bytes(tail_indirection_to_bytes, 'big')
+        for i in range(0, len(columns)):
+            value_to_bytes = bytearray(8)
+        # --- Read an Updated Data if exists --- #
+            if(new_schema_to_bytes[i] == ord('1')):
                 value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
-                self.table.bufferpool.get(value_index).dirty = True
-                self.table.bufferpool.write(value_index, value=value_to_bytes)
-    # ------ Write Indirection for Base and Tail Indirection Page ------ #
-                new_tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
-                new_tail_indirection = self.table.bufferpool.get(new_tail_indirection_index).num_records - 1
-                #if tail_indirection == 0:
-                    #if new_tail_indirection < 100:
-                     #   print("In update : key = " + str(key) + "columns = " + str(columns))
-                     #   print("base indirection column = " + str(tail_indirection))
-                     #   print("tail indirection slot = "+ str(new_tail_indirection))
-                      #  print("tail page num_records = "+ str(self.table.bufferpool.get(new_tail_indirection_index).num_records))
-            tail_indirection_to_bytes = new_tail_indirection.to_bytes(8,'big')
-            indir_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
-            self.table.bufferpool.get(indir_index).change_value(slot, tail_indirection_to_bytes)
-            if(tail_indirection == 0):
-                slot_to_bytes = slot.to_bytes(8,'big')
-                slot_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, INDIRECTION_COLUMN)
-                self.table.bufferpool.write(slot_index, value=slot_to_bytes)
-                self.table.bufferpool.get(slot_index).dirty = True
-            else:
-                tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, INDIRECTION_COLUMN)
-                self.table.bufferpool.write(tail_index, value=tail_indirection_to_bytes)
-                self.table.bufferpool.get(tail_index).dirty = True
-    # ------ Write new Meta-Data for Tail Pages ------ #
-            rid_to_bytes = rid.to_bytes(8,'big')
-            time_to_bytes = int(process_time()).to_bytes(8,'big')
-            rid_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, RID_COLUMN)
-            self.table.bufferpool.write(rid_index, value=rid_to_bytes)
-            self.table.bufferpool.get(rid_index).dirty = True
-            b_sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
-            self.table.bufferpool.get(b_sc_index).change_value(slot, new_schema_to_bytes)
-            t_sc_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, SCHEMA_ENCODING_COLUMN)
-            self.table.bufferpool.write(t_sc_index, value=new_schema_to_bytes)
-            self.table.bufferpool.get(t_sc_index).dirty = True
-            time_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, TIMESTAMP_COLUMN)
-            self.table.bufferpool.write(time_index, value=time_to_bytes)
-            self.table.bufferpool.get(time_index).dirty = True
+                value_to_bytes = self.table.bufferpool.get(value_index).read(tail_indirection)
+        # --- Write the new Updating Data to tail --- #
+            if(columns[i] != None):
+                new_schema_to_bytes[i] = ord('1')
+                value_to_bytes = columns[i].to_bytes(8, 'big')
+            value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
+            self.table.bufferpool.get(value_index).dirty = True
+            self.table.bufferpool.write(value_index, value=value_to_bytes)
+# ------ Write Indirection for Base and Tail Indirection Page ------ #
+            new_tail_indirection_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, i+4)
+            new_tail_indirection = self.table.bufferpool.get(new_tail_indirection_index).num_records - 1
+            #if tail_indirection == 0:
+                #if new_tail_indirection < 100:
+                 #   print("In update : key = " + str(key) + "columns = " + str(columns))
+                 #   print("base indirection column = " + str(tail_indirection))
+                 #   print("tail indirection slot = "+ str(new_tail_indirection))
+                  #  print("tail page num_records = "+ str(self.table.bufferpool.get(new_tail_indirection_index).num_records))
+        tail_indirection_to_bytes = new_tail_indirection.to_bytes(8,'big')
+        indir_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
+        self.table.bufferpool.get(indir_index).change_value(slot, tail_indirection_to_bytes)
+        if(tail_indirection == 0):
+            slot_to_bytes = slot.to_bytes(8,'big')
+            slot_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, INDIRECTION_COLUMN)
+            self.table.bufferpool.write(slot_index, value=slot_to_bytes)
+            self.table.bufferpool.get(slot_index).dirty = True
+        else:
+            tail_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, INDIRECTION_COLUMN)
+            self.table.bufferpool.write(tail_index, value=tail_indirection_to_bytes)
+            self.table.bufferpool.get(tail_index).dirty = True
+# ------ Write new Meta-Data for Tail Pages ------ #
+        rid_to_bytes = rid.to_bytes(8,'big')
+        time_to_bytes = int(process_time()).to_bytes(8,'big')
+        rid_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, RID_COLUMN)
+        self.table.bufferpool.write(rid_index, value=rid_to_bytes)
+        self.table.bufferpool.get(rid_index).dirty = True
+        b_sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
+        self.table.bufferpool.get(b_sc_index).change_value(slot, new_schema_to_bytes)
+        t_sc_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, SCHEMA_ENCODING_COLUMN)
+        self.table.bufferpool.write(t_sc_index, value=new_schema_to_bytes)
+        self.table.bufferpool.get(t_sc_index).dirty = True
+        time_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, TIMESTAMP_COLUMN)
+        self.table.bufferpool.write(time_index, value=time_to_bytes)
+        self.table.bufferpool.get(time_index).dirty = True
+        update_time_1 = process_time()
+        print("Updating 10k records took:  \t\t\t", update_time_1 - update_time_0)
 
     """
     :param start_range: int         # Start of the key range to aggregate 
