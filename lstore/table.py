@@ -69,7 +69,7 @@ class Table:
             json.dump(self.page_directory,fp)
         fp.close()
         print("page_directory written to disk")
-        page_index, slot = self.page_directory[0]
+        page_index, slot = self.page_directory['0']
         print("location for rid 0 = " + str(page_index) + " , " + str(slot))
 
     def __merge(self):

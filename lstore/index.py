@@ -23,8 +23,8 @@ class Index:
 
     def locate(self, column, value):
         ridList = self.trees[column].get(value)
-        print("In locate function: trying to locate value:" + str(value))
-        print("got rid: " + str(ridList))
+        #print("In locate function: trying to locate value:" + str(value))
+        #print("got rid: " + str(ridList))
         return ridList
     """
     # optional: Create index on specific column

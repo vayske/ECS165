@@ -21,25 +21,24 @@ class Query:
     """
 
     def delete(self, key):
-        ridList = self.index.locate(self.table.key,key)                                # Index Tree
+        ridList = self.index.remove(self.table.key - 4,key)                                # Index Tree
         if(len(ridList) == 0):                                            #
             print("Key Not Found")                                  #
             return None
         else:
-            self.index.remove(self.table.key, key)
             for rid in ridList:
                 page_index, slot = self.table.page_directory[str(rid)]
                 rid_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, RID_COLUMN)
                 ind_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, INDIRECTION_COLUMN)
                 indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(slot), 'big')
-                invalid_rid_to_bytes = (-1).to_bytes(8,'big')
+                invalid_rid_to_bytes = (-1).to_bytes(8,'big', signed=True)
                 self.table.bufferpool.get(page_index).change_value(slot,invalid_rid_to_bytes)
                 while indirection > 0:
                     self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
                     ind_index = self.table.bufferpool.getindex(self.table.name,"t", page_index, INDIRECTION_COLUMN)
                     indirection = int.from_bytes(self.table.bufferpool.get(page_index).read(indirection), 'big')
                 self.table.bufferpool.get(ind_index).change_value(indirection,invalid_rid_to_bytes)
-                del self.table.page_directory[rid]
+                del self.table.page_directory[str(rid)]
         pass
 
     """
@@ -102,7 +101,7 @@ class Query:
                 self.table.bufferpool.write(index,value=value_to_bytes)
     # ------ Done ------ #
             slot = self.table.bufferpool.get(index).num_records - 1
-            self.table.page_directory[self.currentRID] = (base_pages_index, slot)   # Add to Page_Directory
+            self.table.page_directory[str(self.currentRID)] = (base_pages_index, slot)   # Add to Page_Directory
             for i in range(0, self.table.num_columns):
                 if(self.index.trees[i].has_key(columns[i])):
                     tempList = self.index.trees[i].get(columns[i])
@@ -185,7 +184,7 @@ class Query:
             print("Key Not Found")
             return None
         for rid in ridList:
-            page_index, slot = self.table.page_directory[rid]
+            page_index, slot = self.table.page_directory[str(rid)]
     # ------ Read Schema Code for Checking Updated Data ------ #
             sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
             new_schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
@@ -250,13 +249,13 @@ class Query:
     def sum(self, start_range, end_range, aggregate_column_index):
         result = 0
         for key in range(start_range, end_range+1):
-            ridList = self.index.locate(aggregate_column_index, key)
-            if(len(ridList) == 0):
+            ridList = self.index.locate(self.table.key - 4, key)
+            if(ridList == None or len(ridList) == 0):
                 result += 0
                 continue
             for rid in ridList:
         # ------ If an Key exists, Read the Corresponding Value ------ #
-                page_index, slot = self.table.page_directory[rid]
+                page_index, slot = self.table.page_directory[str(rid)]
                 sc_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, SCHEMA_ENCODING_COLUMN)
                 schema_to_bytes = self.table.bufferpool.get(sc_index).read(slot)
                 schema = schema_to_bytes[0:5].decode('utf-8')
