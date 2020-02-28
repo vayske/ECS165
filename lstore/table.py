@@ -212,8 +212,8 @@ class Table:
                 # get a unused bufferpool index
                 for column in range(self.num_columns):
                     copy_index = self.bufferpool.empty.pop()
-                    self.used.append(copy_index)
-                    self.LRUIndex[copy_index] = len(self.used) - 1
+                    self.bufferpool.used.append(copy_index)
+                    self.bufferpool.LRUIndex[copy_index] = len(self.used) - 1
                     self.bufferpool.write(copy_index, page=base_copy[column])
                     # change bufferpool directory,
                     # such that new query for this page get this new index
