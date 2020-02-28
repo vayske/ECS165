@@ -5,7 +5,7 @@ from collections import deque
 import os, sys, json
 import numpy as np
 
-BUFFERPOOL_SIZE = 270
+BUFFERPOOL_SIZE = 180
 
 class Bufferpool:
 
