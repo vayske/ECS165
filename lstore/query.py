@@ -229,10 +229,24 @@ class Query:
             else: # schema is 0, just get the base value 
                 value_index = self.table.bufferpool.getindex(self.table.name, "b", page_index, 0, i + self.table.key)
                 value_to_bytes = self.table.bufferpool.get(value_index).read(slot)
+            old_value = int.from_bytes(value_to_bytes,'big')
         # --- Write the new Updating Data to tail --- #
             if(columns[i] != None): #overwrite with latest value, or wirte the value from last update or base 
                 new_schema_to_bytes[i] = ord('1')                   #assign new schema
                 value_to_bytes = columns[i].to_bytes(8, 'big')
+                #-----update index -------
+                val = columns[i]
+                if self.index.trees[i].has_key(val):
+                        tempList = self.index.trees[i].get(val)
+                        tempList.append(rid)
+                        self.index.trees[i].__setitem__(val, tempList)
+                else:
+                    self.index.trees[i].insert(val, [rid])
+                #-----remove old index ------
+                if self.index.trees[i].has_key(old_value):
+                    tempList = self.index.trees[i].get(old_value)
+                    tempList.remove(rid)
+                    self.index.trees[i].__setitem__(old_value, tempList)
             #write to tail page, 
             value_index = self.table.bufferpool.getindex(self.table.name, "t", page_index, new_tail_number, i+NUM_META_COLUMN)
             self.table.bufferpool.write(value_index, value=value_to_bytes)
