@@ -116,26 +116,28 @@ class Table:
         return page
 
     def __merge(self):
+        time.sleep(MERGE_INTERVAL)
         while True:
-            time.sleep(MERGE_INTERVAL)
             print("start new merge")
             for page_index in range(self.num_base_page - 1):  # pick a base page
                 # check num_of record for this base page by getting a whatever column of it 
+                print("try to merge base page " + str(page_index))
                 base_key_index = self.bufferpool.getindex(self.name, "b", page_index, 0, self.key)
                 # if page is not full we don't merge this base page
                 # since if someone insert during the merge, we don't have the latest base record in the merged copy 
-                if self.bufferpool.get(base_key_index).has_capacity:
+                if self.bufferpool.get(base_key_index).num_records != 512:
                     print("base page not full, don't merge")
+                    print( "num_records = " + str(self.bufferpool.get(base_key_index).num_records))
                     continue  
                 merge_number = 128                          # a nice number  512/128 = 4 merge to merge a whole tail page
                 base_lineage = self.bufferpool.get(base_key_index).lineage  # check lineage of basepage
                 tailpage_number = base_lineage / 512  # get corresponding tailpage that haven't merged
                 tail_c_rid_index = self.bufferpool.getindex(self.name, "t", page_index, tailpage_number, RID_COLUMN)
-                self.bufferpool.pinned[tail_c_0_index] = 1
+                self.bufferpool.pinned[tail_c_rid_index] = 1
                 # check if tail has enough records to merge
-                num_record_unmerged = self.bufferpool.get(tail_c_rid_index).num_record - base_lineage
+                num_record_unmerged = self.bufferpool.get(tail_c_rid_index).num_records - base_lineage
                 if num_record_unmerged < merge_number:
-                    self.bufferpool.pinned[tail_c_0_index] = 0
+                    self.bufferpool.pinned[tail_c_rid_index] = 0
                     print("not enough tail record to merge, stop merge")
                     continue
                 base_copy = [Page("", ()) for i in range(self.num_columns)]  # empty pages
@@ -145,13 +147,13 @@ class Table:
                     # 这个0 和 p_0是一个东西
                     # page.meta = (table, "b"/"t",pageindex, pagenumber, column number)
                     page_copy = self.get_page_from_disk(copy_filename, (self.name, "b", page_index, 0, column))
-                    num_record_infile = page_copy.num_record
+                    num_record_infile = page_copy.num_records
                     if num_record_infile == 0:  # page haven't been written into file
                         page_in_pool_index = self.bufferpool.getindex(self.name, "t", page_index, 0, column)
                         self.bufferpool.pinned[page_in_pool_index] = 1
-                        for i in range(self.bufferpool.get(page_in_pool_index).num_record):
+                        for i in range(self.bufferpool.get(page_in_pool_index).num_records):
                             page_data = self.bufferpool.get(page_in_pool_index).read(i)
-                            page_copy.write(page_data, i)  # write page in pool to the copy
+                            page_copy.write(page_data)  # write page in pool to the copy
                         self.bufferpool.pinned[page_in_pool_index] = 1
                     page_copy.dirty = True
                     base_copy[column] = page_copy
@@ -173,20 +175,20 @@ class Table:
                 self.bufferpool.pinned[tail_c_4_index] = 1
                 # merging starting from slot = lineage
                 for slot in range(base_lineage, base_lineage + merge_number):
-                    base_rid = self.bufferpool.get(tail_c_rid_index).read(slot)             #get rid for corresponding base record
-                    base_index, base_slot = self.directory[str(base_rid)]                   #get slot from directory
+                    base_rid = int.from_bytes(self.bufferpool.get(tail_c_rid_index).read(slot),'big')          #get rid for corresponding base record
+                    base_index, base_slot = self.page_directory[str(base_rid)]                   #get slot from directory
                     print("start merging")
                     #read from tail, write to corresponding base records
                     data = self.bufferpool.get(tail_c_0_index).read(slot)
-                    base_copy[0].write(base_slot, data)
+                    base_copy[0].change_value(base_slot, data)
                     data = self.bufferpool.get(tail_c_1_index).read(slot)
-                    base_copy[1].write(base_slot, data)
+                    base_copy[1].change_value(base_slot, data)
                     data = self.bufferpool.get(tail_c_2_index).read(slot)
-                    base_copy[2].write(base_slot, data)
+                    base_copy[2].change_value(base_slot, data)
                     data = self.bufferpool.get(tail_c_3_index).read(slot)
-                    base_copy[3].write(base_slot, data)
+                    base_copy[3].change_value(base_slot, data)
                     data = self.bufferpool.get(tail_c_4_index).read(slot)
-                    base_copy[4].write(base_slot, data)
+                    base_copy[4].change_value(base_slot, data)
                 # end actual merging
                 # update lineage
                 base_copy[0].lineage = base_lineage + merge_number
@@ -218,7 +220,7 @@ class Table:
                     # instead of the index for the old base pages
                     self.bufferpool.directory.update({(self.name, "b", page_index, 0, column): copy_index})
                 print("merging finish")
-                
+            time.sleep(MERGE_INTERVAL)
 
                 #   each basepages  has 9 columns
                 #   column      bufferpool_index    post_merge_bufferpool_index
@@ -241,4 +243,3 @@ class Table:
 
                 # 5,6,7,8 as the old index for old column, will be forgotten and eventually evicted
                 # and since they are not dirty, they won't be written back to disk
-                
