@@ -67,12 +67,12 @@ class Table:
             file = open(tail_dict, "w+")
             file.close()
         #print(self.name, self.num_columns, self.key, self.num_base_page, self.num_tail_page, self.total_base_records, self.total_tail_records)
-        #"""""   
+        """""   
         # create background thread for merge
         merge_thread = threading.Thread(target=self.__merge, args=())
         merge_thread.daemon = True
         merge_thread.start()
-        #"""""
+        """""
 
     def write_meta_to_disk(self):
         meta_dict = {}
