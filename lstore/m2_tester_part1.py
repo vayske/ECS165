@@ -1,6 +1,6 @@
 from lstore.db import Database
 from lstore.query import Query
-
+from time import process_time
 from random import choice, randint, sample, seed
 
 db = Database()
@@ -57,7 +57,7 @@ for i in range(0, 100):
     result = query.sum(keys[r[0]], keys[r[1]], 0)
     if column_sum != result:
         print('sum error on [', keys[r[0]], ',', keys[r[1]], ']: ', result, ', correct: ', column_sum)
-    # else:
-    #     print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
+    #else:
+     #    print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
 print("Aggregate finished")
 db.close()

@@ -1,7 +1,8 @@
 from lstore.page import *
-from time import time
-import os, sys, json
-
+from lstore.index import Index
+from time import sleep
+from lstore.bufferpool import Bufferpool
+import threading
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
 TIMESTAMP_COLUMN = 2
@@ -14,6 +15,7 @@ class Record:
         self.rid = rid
         self.key = key
         self.columns = columns
+
     def __str__(self):
         return str(self.columns)
 
@@ -24,54 +26,45 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key, bufferpool, num_basepage, num_tailpage,total_records):
+    def __init__(self, name, num_columns, key, bufferpool):
         self.name = name
-        self.disk_directory = os.getcwd() + "/" + self.name
-        if not os.path.isdir(self.disk_directory):
-            os.makedirs(self.disk_directory)
-        self.key = key + 4
+        self.key = key
         self.num_columns = num_columns
+        self.total_records = 0
+        self.total_updates = 0
+        self.page_directory = {}
         self.bufferpool = bufferpool
-        self.num_base_page = num_basepage
-        self.num_tail_page = num_tailpage
-        self.total_records = total_records
-        if total_records % 512 == 0:
-            self.page_full = True               
-        else:
-            self.page_full = False
-        self.page_directory = {}            # A Python Dictionary in the format {RID:(Page_Index, Slot), ...}
-        page_dict = self.disk_directory + "/page_dict.json"
-        #print("page directory json file has size: " + str(os.stat(page_dict).st_size))
-        if os.path.isfile(page_dict) and os.stat(page_dict).st_size > 0:
-            print("read page_directory json file")
-            with open(page_dict, "r") as fp:
-                self.page_directory = json.load(fp)
-            fp.close()
-            print("page_directory load from disk")
-            page_index, slot = self.page_directory[str(0)]
-            print("location for rid 0 = " + str(page_index) + " , " + str(slot))
-        else:
-            file = open(page_dict, "w+")
-            file.close()
-
-    def write_meta_to_disk(self):
-        meta_dict = {}
-        meta_dict.update({'key': self.key-4})
-        meta_dict.update({'num_column': self.num_columns})
-        meta_dict.update({'num_basepage': self.num_base_page})
-        meta_dict.update({'num_tailpage': self.num_tail_page})
-        meta_dict.update({'total_records': self.total_records})
-        with open(self.disk_directory + '/metadata.json',"w") as fp:
-            json.dump(meta_dict, fp)
-        fp.close()
-        
-        with open(self.disk_directory +'/page_dict.json',"w") as fp:
-            json.dump(self.page_directory,fp)
-        fp.close()
-        print("page_directory written to disk")
-        page_index, slot = self.page_directory['0']
-        print("location for rid 0 = " + str(page_index) + " , " + str(slot))
-
-    def __merge(self):
+        self.index = Index(self)
+        self.start_merge = False
         pass
+
+    def merge(self, bufferpool):
+        while(self.total_updates > 0):
+            for i in range(0, self.total_updates):
+                tail_index = i // 512
+                tail_slot = i % 512
+                for j in range(0, self.num_columns):
+                    page_name = "t_" + str(tail_index) + "_" + "c_" + str((j+4))
+                    updated_value = int.from_bytes(bufferpool.read(page_name, tail_slot), 'big', signed=True)
+                    if updated_value == -1:
+                        continue
+                    page_name = "t_" + str(tail_index) + "_" + "c_" + str(RID_COLUMN)
+                    base_rid = int.from_bytes(bufferpool.read(page_name, tail_slot), 'big', signed=True)
+                    base_index, base_slot = self.page_directory[base_rid]
+                    page_name = "b_" + str(base_index) + "_" + "c_" + str(j+4)
+                    lock = threading.Lock()
+                    lock.acquire()
+                    page_index__in_pool = bufferpool.get_page(page_name)
+                    copypage = bufferpool.pool[page_index__in_pool]
+                    bufferpool.pool[page_index__in_pool].merging = True
+                    lock.release()
+                    updated_value = updated_value.to_bytes(8, 'big', signed=True)
+                    copypage.change_value(base_slot, updated_value)
+                    while not bufferpool.replace_page(copypage):
+                        pass
+                    sleep(0.1)
+
+
+
+
  
