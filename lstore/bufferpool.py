@@ -1,6 +1,6 @@
 from lstore.page import *
 
-CAPACITY = 90
+CAPACITY = 2048
 
 class Bufferpool:
 
@@ -37,6 +37,7 @@ class Bufferpool:
                 file = open(page_name, "r")
                 new_page.page_name = page_name
                 new_page.num_records = int(file.readline())
+                new_page.TPS = int(file.readline())
                 new_page.data = eval(file.readline())
                 file.close()
             if(self.total_page >= CAPACITY):
@@ -60,6 +61,7 @@ class Bufferpool:
         if self.pool[position].dirty:
             file = open(self.pool[position].page_name, "w")
             file.write(str(self.pool[position].num_records) + "\n")
+            file.write(str(self.pool[position].TPS) + "\n")
             file.write(str(self.pool[position].data) + "\n")
             file.close()
         self.pool.pop(position)
@@ -70,18 +72,10 @@ class Bufferpool:
             if self.pool[i].dirty:
                 file = open(self.pool[i].page_name, "w")
                 file.write(str(self.pool[i].num_records) + "\n")
+                file.write(str(self.pool[i].TPS) + "\n")
                 file.write(str(self.pool[i].data) + "\n")
                 file.close()
 
-    def replace_page(self, page):
-        position = self.get_page(page.page_name)
-        if self.pool[position].pin:
-            return False
-        else:
-            self.pool[position] = page
-            self.pool[position].dirty = True
-            self.pool[position].merging = False
-            return True
 
 
 

@@ -7,6 +7,7 @@ class Page:
         self.page_name = ""
         self.num_records = 0
         #self.used = 0
+        self.TPS = -1
         self.dirty = False
         self.pin = False
         self.merging = False

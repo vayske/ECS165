@@ -154,10 +154,6 @@ class Query:
             page_name = "b_" + str(page_index) + "_" + "c_" + str(SCHEMA_ENCODING_COLUMN)
             self.bufferpool.change_value(page_name, slot, base_schema)
             self.table.total_updates += 1
-            if self.table.total_updates > 38000 and not self.table.start_merge:
-                self.table.start_merge = True
-                t = threading.Thread(target=self.table.merge, args=(self.bufferpool,))
-                t.start()
 
 
 

@@ -23,6 +23,7 @@ class Database():
             file.write(str(table.key) + "\n")
             file.write(str(table.total_records) + "\n")
             file.write(str(table.total_updates) + "\n")
+            file.write(str(table.lineage) + "\n")
             file.write(str(table.page_directory) + "\n")
             file.close()
 
@@ -60,7 +61,8 @@ class Database():
         table = Table(tname, num_columns, key, self.bufferpool)
         table.total_records = int(table_data[3])
         table.total_updates = int(table_data[4])
-        table.page_directory = eval(table_data[5])
+        table.lineage = int(table_data[5])
+        table.page_directory = eval(table_data[6])
         file.close()
         self.tables.append(table)
         return table
