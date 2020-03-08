@@ -33,6 +33,7 @@ class Table:
         self.total_records = 0
         self.total_updates = 0
         self.page_directory = {}
+        self.lock_manager = {}                      #{RID: (num_lock, num_xlock)} use Counter class
         self.bufferpool = bufferpool
         self.index = Index(self)
         self.start_merge = False
