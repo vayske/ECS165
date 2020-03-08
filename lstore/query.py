@@ -1,6 +1,7 @@
 from lstore.table import *
 from lstore.index import Index
 from lstore.bufferpool import *
+from lstore.counter import *
 from time import process_time
 import os
 import threading
@@ -42,10 +43,14 @@ class Query:
     def get_name(self, bt, index, column_num):
         return bt + "_" + str(index) + "_" + "c_" + str(column_num)
 
-    def insert(self, *columns):
+    def insert(self, *columns, transaction = None, undo = False):
+        #if undo:
+            #undo any thing was done, invalidate inserted record
         base_index = self.table.total_records // 512
         indirection = -1
         rid = self.table.total_records
+        if not self.table.lock_manager.get_xlock(rid, transaction):
+            return False
         schema_encoding = '0' * self.table.num_columns
         time = int(process_time())
         insertlist = [indirection, rid, time, schema_encoding] + list(columns)
@@ -56,8 +61,7 @@ class Query:
         slot = self.table.total_records % 512
         self.table.total_records += 1
         self.table.page_directory[rid] = (base_index, slot)
-        self.table.lock_manage[rid] = (Counter(), Counter())
-
+        return (rid,columns[0],True)
 
     """
     # Read a record with specified key

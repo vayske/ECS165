@@ -33,35 +33,49 @@ class Table:
         self.total_records = 0
         self.total_updates = 0
         self.page_directory = {}
-        self.lock_manager = {}                      #{RID: (num_lock, num_xlock)} use Counter class
+        self.lock_manager = {}                      #{RID: (num_lock, num_xlock, [array of transaction holding lock]) } use Counter class
         self.bufferpool = bufferpool
         self.index = Index(self)
         self.start_merge = False
         pass
 
-    def get_slock(self, rid):
-        (num_slock, num_xlock) = self.lock_manager[rid]
+    def get_slock(self, rid, transaction):
+        if len(self.lock_manager[rid] == 0):    
+            self.table.lock_manage[rid] = (Counter() Counter(), [])
+        (num_slock, num_xlock, transations) = self.lock_manager[rid]
         if num_xlock.value == 0:
             num_slock.inc()
-            return true
-        return false
+            transations.append(transaction)
+            return True
+        return False
 
-    def get_xlock(self, rid):
-        (num_slock, num_xlock) = self.lock_manager[rid]
-        if num_slock.value == 0 and num_xlock.value == 0:
-            num_xlock.inc()
-            return true
-        return false
+    def get_xlock(self, rid, transaction):
+        if len(self.lock_manager[rid] == 0):    #create lock if not exist(insert)
+            self.table.lock_manage[rid] = (Counter() Counter(), [])
+        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
+        if num_xlock.value == 0:
+            if num_slock.value == 0:
+                num_xlock.inc()
+                transactions.append(transaction)
+                return True
+            elif num_slock.value == 1 and len(transactions) == 1 and transactions[0] == transaction:
+                #upgrade slock to xlock if it is the only lock holder
+                num_xlock.inc()
+                num_slock.dec()
+                return True
+        return False
     
-    def release_s_lock(self, rid):
-        (num_slock, num_xlock) = self.lock_manager[rid]
+    def release_s_lock(self, rid, transaction):
+        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
         num_slock.dec()
-        return true
+        transactions.remove(transation)
+        return True
 
     def release_x_lock(self, rid):
-        (num_slock, num_xlock) = self.lock_manager[rid]
+        (num_slock, num_xlock, transaction) = self.lock_manager[rid]
         num_xlock.dec()
-        return true
+        transactions.remove(transation)
+        return True
 
     def merge(self, bufferpool):
         while(self.total_updates > 0):

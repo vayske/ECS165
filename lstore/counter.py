@@ -1,6 +1,6 @@
 import threading 
-#Counter with lock, used in pin and lock dictionary
-class Couter():
+#Counter with lock, used in pin and lock dictionary or ant other numbers that needs to be protected
+class Counter():
     def __init__(self, value=0):
         self.value = value
         self.lock = threading.Lock()
