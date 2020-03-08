@@ -50,7 +50,7 @@ class Query:
         indirection = -1
         rid = self.table.total_records
         if not self.table.lock_manager.get_xlock(rid, transaction):
-            return False
+            return (-1, 0, False)
         schema_encoding = '0' * self.table.num_columns
         time = int(process_time())
         insertlist = [indirection, rid, time, schema_encoding] + list(columns)
@@ -61,7 +61,7 @@ class Query:
         slot = self.table.total_records % 512
         self.table.total_records += 1
         self.table.page_directory[rid] = (base_index, slot)
-        return (rid,columns[0],True)
+        return (rid, columns[0], True)  #rid, columns[0] = key index, used for undo
 
     """
     # Read a record with specified key
@@ -69,7 +69,7 @@ class Query:
     # :param query_columns: what columns to return. array of 1 or 0 values.
     """
 
-    def select(self, key, column, query_columns):
+    def select(self, key, column, query_columns, transaction = None, undo = False):
         if not self.table.index.has_index(column):
             self.table.index.create_index(self.table, column,  self.bufferpool)
         record_list = []
@@ -80,6 +80,8 @@ class Query:
                 page_index, slot = self.table.page_directory[rid]
             except KeyError:
                 continue
+            if not self.table.lock_manager.get_slock(rid, transaction):
+                return ([], False)
             for i in range(0, len(query_columns)):
                 if query_columns[i] == 1:
                     page_name = self.get_name("b", page_index, i+4)
@@ -102,7 +104,7 @@ class Query:
                         updated_value = int.from_bytes(self.bufferpool.read(page_name, tail_slot), 'big', signed=True)
                         select_list[i] = updated_value
                 record_list.append(Record(rid, key, select_list))
-        return record_list
+        return (record_list, True)
 
 
 
@@ -111,7 +113,9 @@ class Query:
     # Update a record with specified key and columns
     """
 
-    def update(self, key, *columns):
+    def update(self, key, *columns, transaction = None, undo = False):
+        #if undo:
+            #undo update, invalidate new update, change back indirection 
         if not self.table.index.has_index(self.table.key):
             self.table.index.create_index(self.table, self.table.key, self.bufferpool)
         RidList = self.table.index.locate(self.table.key, key)
@@ -120,6 +124,8 @@ class Query:
                 page_index, slot = self.table.page_directory[rid]
             except KeyError:
                 continue
+            if not self.table.lock_manager.get_Xlock(rid, transaction):
+                return (-1, False)
             page_name = self.get_name("b", page_index, INDIRECTION_COLUMN)
             indirection = int.from_bytes(self.bufferpool.read(page_name, slot), 'big', signed=True)
             page_name = self.get_name("b", page_index, SCHEMA_ENCODING_COLUMN)
@@ -163,8 +169,7 @@ class Query:
                 self.table.start_merge = True
                 t = threading.Thread(target=self.table.merge, args=(self.bufferpool,))
                 t.start()
-
-
+            return (rid, True)
 
 
 
@@ -175,7 +180,7 @@ class Query:
     # this function is only called on the primary key.
     """
 
-    def sum(self, start_range, end_range, aggregate_column_index):
+    def sum(self, start_range, end_range, aggregate_column_index, transaction = None, undo = False):
         result = 0
         if not self.table.index.has_index(aggregate_column_index):
             self.table.index.create_index(self.table, aggregate_column_index, self.bufferpool)
@@ -189,6 +194,8 @@ class Query:
                     page_index, slot = self.table.page_directory[rid]
                 except KeyError:
                     continue
+                if not self.table.lock_manager.get_slock(rid, transaction):
+                    return (-1, False)
                 page_name = self.get_name("b", page_index, SCHEMA_ENCODING_COLUMN)
                 schema = self.bufferpool.read(page_name, slot)
                 if schema[aggregate_column_index] == ord('1'):
@@ -203,7 +210,7 @@ class Query:
                     page_name = self.get_name("b", page_index, aggregate_column_index+4)
                     value = int.from_bytes(self.bufferpool.read(page_name, slot), 'big', signed=True)
                     result += value
-        return result
+        return (result, True)
 
     """
     incremenets one column of the record
@@ -213,13 +220,13 @@ class Query:
     # Returns True is increment is successful
     # Returns False if no record matches key or if target record is locked by 2PL.
     """
-    def increment(self, key, column):
+    def increment(self, key, column, transaction = None, undo = False):
         r = self.select(key, self.table.key, [1] * self.table.num_columns)[0]
         if r is not False:
             updated_columns = [None] * self.table.num_columns
             updated_columns[column] = r[column] + 1
-            u = self.update(key, *updated_columns)
-            return u
+            u = self.update(key, *updated_columns, transaction)
+            return u[-1]
         return False
 
 
