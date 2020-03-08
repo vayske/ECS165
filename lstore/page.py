@@ -1,5 +1,5 @@
 from lstore.config import *
-
+from lstore.counter import *
 
 class Page:
 
@@ -8,7 +8,7 @@ class Page:
         self.num_records = 0
         #self.used = 0
         self.dirty = False
-        self.pin = False
+        self.pin = Counter()
         self.merging = False
         self.data = bytearray(4096)
 
@@ -19,23 +19,23 @@ class Page:
             return True
 
     def write(self, value):
-        self.pin = True
+        self.pin.inc()
         position = self.num_records * 8
         self.data[position:position+8] = value
         self.num_records += 1
         self.dirty = True
-        self.pin = False
+        self.pin.dec()
 
     def change_value(self, slot, value):
-        self.pin = True
+        self.pin.inc()
         position = slot * 8
         self.data[position:position+8] = value
         self.dirty = True
-        self.pin = False
+        self.pin.dec()
 
     def read(self, slot):
-        self.pin = True
+        self.pin.inc()
         position = slot * 8
-        self.pin = False
+        self.pin.dec()
         return self.data[position:position+8]
 
