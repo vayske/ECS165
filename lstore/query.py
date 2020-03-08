@@ -20,12 +20,19 @@ class Query:
     # Read a record with specified RID
     """
 
-    def delete(self, key):
+    def delete(self, key, transaction = None, undo = True):
+        if undo:
+            #recover deleted record
+            rid = key
+            #more undo code 
         if not self.table.index.has_index(self.table.key):
             self.table.index.create_index(self.table, self.table.key, self.bufferpool)
         RidList = self.table.index.locate(self.table.key, key)
         for rid in RidList:
+            if not self.table.lock_manager.get_xlock(rid, transaction):
+                return (-1, False)
            del self.table.page_directory[rid]
+        return (rid, False)
 
     """
     # Insert a record with specified columns
@@ -44,8 +51,11 @@ class Query:
         return bt + "_" + str(index) + "_" + "c_" + str(column_num)
 
     def insert(self, *columns, transaction = None, undo = False):
-        #if undo:
+        if undo:
             #undo any thing was done, invalidate inserted record
+            rid = columns[0]
+            key = columns[1]
+            #more undo code
         base_index = self.table.total_records // 512
         indirection = -1
         rid = self.table.total_records
@@ -61,7 +71,7 @@ class Query:
         slot = self.table.total_records % 512
         self.table.total_records += 1
         self.table.page_directory[rid] = (base_index, slot)
-        return (rid, columns[0], True)  #rid, columns[0] = key index, used for undo
+        return (rid, columns[0], True)  #rid, columns[0] = key index(student ID), used for undo
 
     """
     # Read a record with specified key
@@ -116,6 +126,9 @@ class Query:
     def update(self, key, *columns, transaction = None, undo = False):
         #if undo:
             #undo update, invalidate new update, change back indirection 
+            rid = columns[0]
+            old_indirection = columns[1]
+            #more undo code
         if not self.table.index.has_index(self.table.key):
             self.table.index.create_index(self.table, self.table.key, self.bufferpool)
         RidList = self.table.index.locate(self.table.key, key)
@@ -125,9 +138,10 @@ class Query:
             except KeyError:
                 continue
             if not self.table.lock_manager.get_Xlock(rid, transaction):
-                return (-1, False)
+                return (-1, -1, False)
             page_name = self.get_name("b", page_index, INDIRECTION_COLUMN)
             indirection = int.from_bytes(self.bufferpool.read(page_name, slot), 'big', signed=True)
+            old_indirection = indirection
             page_name = self.get_name("b", page_index, SCHEMA_ENCODING_COLUMN)
             schema_in_bytes = self.bufferpool.read(page_name, slot)
             record_list = [-1, -1, -1, -1, -1]
@@ -169,7 +183,7 @@ class Query:
                 self.table.start_merge = True
                 t = threading.Thread(target=self.table.merge, args=(self.bufferpool,))
                 t.start()
-            return (rid, True)
+            return (rid, old_indirection, True)
 
 
 

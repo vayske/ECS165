@@ -38,11 +38,11 @@ class Transaction:
         for (i,result) in enumerate(self.results):
             query = self.queries[i]
             if query.__name__ = 'insert':
-                query(result, undo = True) #pass in result as columns
+                query(result, undo = True)      #pass in result as columns so that query knows what to undo
             elif query.__name__ = 'update':
                 query(0, result, undo = True)   # 0 is the key, not used in undo just filling the argument
             elif query.__name__ = 'delete':
-                query(0, result, undo = True)
+                query(result[0], undo = True)   #result[0] is the rid deleted, passed in as key
             # Select and Sum don't need undo because they don't change anything 
         self.commit() #release locks
         return False
