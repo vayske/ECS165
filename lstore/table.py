@@ -39,6 +39,30 @@ class Table:
         self.start_merge = False
         pass
 
+    def get_slock(self, rid):
+        (num_slock, num_xlock) = self.lock_manager[rid]
+        if num_xlock.value == 0:
+            num_slock.inc()
+            return true
+        return false
+
+    def get_xlock(self, rid):
+        (num_slock, num_xlock) = self.lock_manager[rid]
+        if num_slock.value == 0 and num_xlock.value == 0:
+            num_xlock.inc()
+            return true
+        return false
+    
+    def release_s_lock(self, rid):
+        (num_slock, num_xlock) = self.lock_manager[rid]
+        num_slock.dec()
+        return true
+
+    def release_x_lock(self, rid):
+        (num_slock, num_xlock) = self.lock_manager[rid]
+        num_xlock.dec()
+        return true
+
     def merge(self, bufferpool):
         while(self.total_updates > 0):
             for i in range(0, self.total_updates):

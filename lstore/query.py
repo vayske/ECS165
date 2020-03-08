@@ -56,6 +56,7 @@ class Query:
         slot = self.table.total_records % 512
         self.table.total_records += 1
         self.table.page_directory[rid] = (base_index, slot)
+        self.table.lock_manage[rid] = (Counter(), Counter())
 
 
     """
