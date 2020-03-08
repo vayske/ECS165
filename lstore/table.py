@@ -46,6 +46,7 @@ class Table:
         if num_xlock.value == 0:
             num_slock.inc()
             transations.append(transaction)
+            transaction.locks_rid.append(rid)
             return True
         return False
 
@@ -57,6 +58,7 @@ class Table:
             if num_slock.value == 0:
                 num_xlock.inc()
                 transactions.append(transaction)
+                transaction.locks_rid.append(rid)
                 return True
             elif num_slock.value == 1 and len(transactions) == 1 and transactions[0] == transaction:
                 #upgrade slock to xlock if it is the only lock holder
@@ -69,14 +71,24 @@ class Table:
         (num_slock, num_xlock, transactions) = self.lock_manager[rid]
         num_slock.dec()
         transactions.remove(transation)
+        transaction.locks_rid.remove(rid)
         return True
 
-    def release_x_lock(self, rid):
+    def release_x_lock(self, rid, transaction):
         (num_slock, num_xlock, transaction) = self.lock_manager[rid]
         num_xlock.dec()
         transactions.remove(transation)
+        transaction.locks_rid.remove(rid)
         return True
 
+    def release_lock(self, rid, transaction):
+        (num_slock, num_xlock, transaction) = self.lock_manager[rid]
+        if transaction in transactions:
+            if num_xlock == 1:
+                self.release_xlock(rid,transaction)
+            elif num_slock > 0:
+                self.release_slock(rid,transaction)
+                
     def merge(self, bufferpool):
         while(self.total_updates > 0):
             for i in range(0, self.total_updates):

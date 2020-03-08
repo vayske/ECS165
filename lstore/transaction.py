@@ -8,6 +8,8 @@ class Transaction:
     """
     def __init__(self):
         self.queries = []
+        self.results = []   #record success or failure to decide commit/abort
+        self.locks_rid = [] #record all locks to release later 
         pass
 
     """
@@ -24,12 +26,31 @@ class Transaction:
 
     def run(self):
         for query, args in self.queries:
-            query(*args)
-        pass
+            result = query(*args, transaction = self)
+            if result[-1] == False:
+                #if failure abort right away
+                return self.abort()
+            self.results.append(result)     #save success return value, might need to used for undo 
+        return self.commit()
 
     def abort(self):
-        pass
+        #undo all previous success
+        for (i,result) in enumerate(self.results):
+            query = self.queries[i]
+            if query.__name__ = 'insert':
+                query(result, undo = True) #pass in result as columns
+            elif query.__name__ = 'update':
+                query(0, result, undo = True)   # 0 is the key, not used in undo just filling the argument
+            elif query.__name__ = 'delete':
+                query(0, result, undo = True)
+            # Select and Sum don't need undo because they don't change anything 
+        self.commit() #release locks
+        return False
 
     def commit(self):
-        pass
+        #release locks 
+        table = self.queries[0].table
+        for rid in self.locks_rid:
+            table.lock_manager.release_lock(rid, self)
+        return True
 
