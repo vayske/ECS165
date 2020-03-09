@@ -235,13 +235,18 @@ class Query:
     # Returns False if no record matches key or if target record is locked by 2PL.
     """
     def increment(self, key, column, transaction = None, undo = False):
-        r = self.select(key, self.table.key, [1] * self.table.num_columns)[0]
-        if r is not False:
+        if undo:
+            #same undo as update, since no undo for select
+            rid = key
+            old_indirection = column
+            #more undo code
+        (r,t) = self.select(key, self.table.key, [1] * self.table.num_columns)[0]
+        if t is not False:
             updated_columns = [None] * self.table.num_columns
-            updated_columns[column] = r[column] + 1
+            updated_columns[column] = r[0].columns[column] + 1
             u = self.update(key, *updated_columns, transaction)
-            return u[-1]
-        return False
+            return u                #return the same thing as update
+        return (None, -1, False)    #no need to undo(no update is done) if select is false
 
 
 

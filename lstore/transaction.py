@@ -42,7 +42,10 @@ class Transaction:
             elif query.__name__ == 'update':
                 query(0, result, undo = True)   # 0 is the key, not used in undo just filling the argument
             elif query.__name__ == 'delete':
-                query(result[0], undo = True)   #result[0] is the rid deleted, passed in as key
+                query(result[0], undo = True)   #result[0] is the rid deleted, passed in as key, because delete doesn't have columns argument
+            elif query.__name__ == 'increment':
+                query(result[0], result[1], undo = True)    #result[0] is the rid, passed in as key
+                                                            #result[1] is the old indirection, passed in as column
             # Select and Sum don't need undo because they don't change anything 
         self.commit() #release locks
         return False
