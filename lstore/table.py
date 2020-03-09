@@ -41,7 +41,7 @@ class Table:
 
     def get_slock(self, rid, transaction):
         if len(self.lock_manager[rid] == 0):    
-            self.table.lock_manage[rid] = (Counter() Counter(), [])
+            self.table.lock_manage[rid] = (Counter(), Counter(), [])
         (num_slock, num_xlock, transations) = self.lock_manager[rid]
         if num_xlock.value == 0:
             num_slock.inc()
@@ -52,7 +52,7 @@ class Table:
 
     def get_xlock(self, rid, transaction):
         if len(self.lock_manager[rid] == 0):    #create lock if not exist(insert)
-            self.table.lock_manage[rid] = (Counter() Counter(), [])
+            self.table.lock_manage[rid] = (Counter(), Counter(), [])
         (num_slock, num_xlock, transactions) = self.lock_manager[rid]
         if num_xlock.value == 0:
             if num_slock.value == 0:
@@ -70,19 +70,19 @@ class Table:
     def release_s_lock(self, rid, transaction):
         (num_slock, num_xlock, transactions) = self.lock_manager[rid]
         num_slock.dec()
-        transactions.remove(transation)
+        transactions.remove(transaction)
         transaction.locks_rid.remove(rid)
         return True
 
     def release_x_lock(self, rid, transaction):
-        (num_slock, num_xlock, transaction) = self.lock_manager[rid]
+        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
         num_xlock.dec()
-        transactions.remove(transation)
+        transactions.remove(transaction)
         transaction.locks_rid.remove(rid)
         return True
 
     def release_lock(self, rid, transaction):
-        (num_slock, num_xlock, transaction) = self.lock_manager[rid]
+        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
         if transaction in transactions:
             if num_xlock == 1:
                 self.release_xlock(rid,transaction)

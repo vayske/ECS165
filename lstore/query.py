@@ -31,7 +31,7 @@ class Query:
         for rid in RidList:
             if not self.table.lock_manager.get_xlock(rid, transaction):
                 return (-1, False)
-           del self.table.page_directory[rid]
+            del self.table.page_directory[rid]
         return (rid, False)
 
     """
@@ -124,7 +124,7 @@ class Query:
     """
 
     def update(self, key, *columns, transaction = None, undo = False):
-        #if undo:
+        if undo:
             #undo update, invalidate new update, change back indirection 
             rid = columns[0]
             old_indirection = columns[1]

@@ -9,6 +9,7 @@ class TransactionWorker:
     """
     def __init__(self):
         self.transactions = []
+        self.result = 0
         pass
 
     """
@@ -23,6 +24,6 @@ class TransactionWorker:
 
     def run(self):
         for txn in self.transactions:
-            txn.run()
+            self.result += txn.run()    #if commit + 1 , if abort + 0
         pass
 
