@@ -4,7 +4,7 @@ from time import process_time
 from random import choice, randint, sample, seed
 
 db = Database()
-db.open('~/ECS165')
+db.open('ECS165')
 # Student Id and 4 grades
 grades_table = db.create_table('Grades', 5, 0)
 query = Query(grades_table)
@@ -57,7 +57,7 @@ for i in range(0, 100):
     result = query.sum(keys[r[0]], keys[r[1]], 0)
     if column_sum != result:
         print('sum error on [', keys[r[0]], ',', keys[r[1]], ']: ', result, ', correct: ', column_sum)
-    #else:
-     #    print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
+    # else:
+    #     print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
 print("Aggregate finished")
 db.close()

@@ -4,10 +4,8 @@ from lstore.transaction import Transaction
 from time import process_time
 from random import choice, randrange
 
-
 # Student Id and 4 grades
 db = Database()
-db.open('~/ECS165')
 grades_table = db.create_table('Grades', 5, 0)
 query = Query(grades_table)
 keys = []
@@ -30,9 +28,10 @@ update_cols = [
 ]
 
 t = Transaction()
-t.add_query(query.update, choice(keys), *choice(update_cols))
+key = choice(keys)
+t.add_query(query.update, key, *choice(update_cols))
+t.add_query(query.select, key, 0, [1, 1, 1, 1, 1])
 t.run()
-
 
 update_time_0 = process_time()
 for i in range(0, 10000):

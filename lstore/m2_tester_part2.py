@@ -5,7 +5,7 @@ from random import choice, randint, sample, seed
 
 # Student Id and 4 grades
 db = Database()
-db.open('~/ECS165')
+db.open('ECS165')
 grades_table = db.get_table('Grades')
 query = Query(grades_table)
 

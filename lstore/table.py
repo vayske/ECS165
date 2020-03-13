@@ -1,12 +1,9 @@
 from lstore.page import *
 from lstore.index import Index
-from time import time
 from lstore.bufferpool import Bufferpool
+from lstore.mylock import MyLock
 import threading
-INDIRECTION_COLUMN = 0
-RID_COLUMN = 1
-TIMESTAMP_COLUMN = 2
-SCHEMA_ENCODING_COLUMN = 3
+from time import sleep
 
 
 class Record:
@@ -15,105 +12,91 @@ class Record:
         self.rid = rid
         self.key = key
         self.columns = columns
+        pass
 
     def __str__(self):
         return str(self.columns)
 
-class Table:
 
+class Table:
     """
     :param name: string         #Table name
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key, bufferpool):
+
+    def __init__(self, name, num_columns, key):
         self.name = name
         self.key = key
         self.num_columns = num_columns
         self.total_records = 0
-        self.total_updates = 0
         self.page_directory = {}
-        self.lock_manager = {}                      #{RID: (num_lock, num_xlock, [array of transaction holding lock]) } use Counter class
-        self.bufferpool = bufferpool
+        self.base_updates = []
+        self.bufferpool = Bufferpool()
         self.index = Index(self)
-        self.start_merge = False
+        self.lock_manage = MyLock()
+        merge_thread = threading.Thread(target=self.__merge)
+        merge_thread.daemon = True
+        merge_thread.start()
         pass
 
-    def get_slock(self, rid, transaction):
-        if len(self.lock_manager[rid] == 0):    
-            self.table.lock_manage[rid] = (Counter(), Counter(), [])
-        (num_slock, num_xlock, transations) = self.lock_manager[rid]
-        if num_xlock.value == 0:
-            num_slock.inc()
-            transations.append(transaction)
-            transaction.locks_rid.append(rid)
-            return True
-        return False
+    def __merge(self):
+        while True:
+            num_base_pages = len(self.base_updates)
+            for page_index in range(num_base_pages):
+                if self.base_updates[page_index] == 0:
+                    continue
+                page_name = 'b_' + str(page_index) + '_c_' + str(self.key + 4)
+                copy = self.get_from_disk(page_name)
+                if copy.has_capacity():
+                    continue
+                if copy.tps == self.base_updates[page_index] - 1:
+                    continue
+                if self.base_updates[page_index] - copy.tps - 1 < MERGENUMBER:
+                    continue
+                for i in range(copy.tps, copy.tps+MERGENUMBER):
+                    page_name = 't_' + str(page_index) + '_' + str(i//PAGESIZE) + '_c_' + str(RID_COLUMN)
+                    rid_page = self.get_from_disk(page_name)
+                    rid = rid_page.read(copy.tps % PAGESIZE)
+                    base_slot = rid % PAGESIZE
+                    for colunm in range(self.num_columns):
+                        page_name = 't_' + str(page_index) + '_' + str(i//PAGESIZE) + '_c_' + str(colunm+4)
+                        tail_page = self.get_from_disk(page_name)
+                        updated_value = tail_page.read(copy.tps % PAGESIZE)
+                        if updated_value == -1:
+                            continue
+                        page_name = 'b_' + str(page_index) + '_c_' + str(colunm+4)
+                        base_page = self.get_from_disk(page_name)
+                        base_page.modify(base_slot, updated_value)
+                        base_page.tps = i
+                        done = False
+                        while not done:
+                            if not self.bufferpool.lock.acquire():
+                                continue
+                            done = self.bufferpool.replace(base_page)
+                            self.bufferpool.lock.release()
+                        sleep(MERGETIME)
+        pass
 
-    def get_xlock(self, rid, transaction):
-        if len(self.lock_manager[rid] == 0):    #create lock if not exist(insert)
-            self.table.lock_manage[rid] = (Counter(), Counter(), [])
-        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
-        if num_xlock.value == 0:
-            if num_slock.value == 0:
-                num_xlock.inc()
-                transactions.append(transaction)
-                transaction.locks_rid.append(rid)
-                return True
-            elif num_slock.value == 1 and len(transactions) == 1 and transactions[0] == transaction:
-                #upgrade slock to xlock if it is the only lock holder
-                num_xlock.inc()
-                num_slock.dec()
-                return True
-        return False
-    
-    def release_s_lock(self, rid, transaction):
-        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
-        num_slock.dec()
-        transactions.remove(transaction)
-        transaction.locks_rid.remove(rid)
-        return True
-
-    def release_x_lock(self, rid, transaction):
-        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
-        num_xlock.dec()
-        transactions.remove(transaction)
-        transaction.locks_rid.remove(rid)
-        return True
-
-    def release_lock(self, rid, transaction):
-        (num_slock, num_xlock, transactions) = self.lock_manager[rid]
-        if transaction in transactions:
-            if num_xlock == 1:
-                self.release_xlock(rid,transaction)
-            elif num_slock > 0:
-                self.release_slock(rid,transaction)
-                
-    def merge(self, bufferpool):
-        while(self.total_updates > 0):
-            for i in range(0, self.total_updates):
-                tail_index = i // 512
-                tail_slot = i % 512
-                for j in range(0, self.num_columns):
-                    page_name = "t_" + str(tail_index) + "_" + "c_" + str((j+4))
-                    updated_value = int.from_bytes(bufferpool.read(page_name, tail_slot), 'big', signed=True)
-                    if updated_value == -1:
-                        continue
-                    page_name = "t_" + str(tail_index) + "_" + "c_" + str(RID_COLUMN)
-                    base_rid = int.from_bytes(bufferpool.read(page_name, tail_slot), 'big', signed=True)
-                    base_index, base_slot = self.page_directory[base_rid]
-                    page_name = "b_" + str(base_index) + "_" + "c_" + str(j+4)
-                    lock = threading.Lock()
-                    lock.acquire()
-                    page_index__in_pool = bufferpool.get_page(page_name)
-                    copypage = bufferpool.pool[page_index__in_pool]
-                    lock.release()
-                    updated_value = updated_value.to_bytes(8, 'big', signed=True)
-                    copypage.change_value(base_slot, updated_value)
-                    while not bufferpool.replace_page(copypage):
-                        pass
-
-
-
-
- 
+    def get_from_disk(self, page_name):
+        while not self.bufferpool.lock.acquire():
+            sleep(0.5)
+        for i in range(self.bufferpool.total_page):
+            if self.bufferpool.pool[i].page_name == page_name:
+                temp_page = self.bufferpool.pool[i]
+                new_page = Page()
+                new_page.page_name = page_name
+                new_page.num_records = temp_page.num_records
+                new_page.tps = temp_page.tps
+                new_page.data = temp_page.data
+                self.bufferpool.lock.release()
+                return new_page
+        self.bufferpool.lock.release()
+        file = open(page_name, 'r')
+        new_page = Page()
+        new_page.page_name = page_name
+        new_page.num_records = int(file.readline())
+        new_page.tps = int(file.readline())
+        new_page.data = eval(file.readline())
+        file.close()
+        return new_page
