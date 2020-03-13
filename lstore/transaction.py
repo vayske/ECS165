@@ -1,7 +1,6 @@
 from lstore.table import Table, Record
 from lstore.index import Index
 
-
 class Transaction:
     """
     # Creates a transaction object.
@@ -26,7 +25,7 @@ class Transaction:
     def run(self):
         i = 0
         for query, args in self.queries:
-            result = query(*args)
+            result = query(*args, commit=False)
             # If the query has failed the transaction should abort
             if result == False:
                 return self.abort(i)
@@ -37,9 +36,12 @@ class Transaction:
         # TODO: do roll-back and any other necessary operations
         while i >= 0:
             query, args = self.queries[i]
-            query(*args, undo=True)
+            query(*args, undo=True, commit=False)
+            i -= 1
         return False
 
     def commit(self):
         # TODO: commit to database
+        for query, args in self.queries:
+            result = query(*args, commit=True)
         return True

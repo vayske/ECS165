@@ -12,7 +12,7 @@ class Bufferpool:
 
     def get_page(self, page_name):
         while not self.lock.acquire():
-            print('locking bufferpool')
+            print('wait for merge\n')
         for i in range(self.total_page):
             if self.pool[i].page_name == page_name:
                 self.lock.release()
@@ -30,10 +30,8 @@ class Bufferpool:
             new_page.data = eval(file.readline())
             file.close()
         if self.total_page >= POOLSIZE:
-            self.evict()
-            self.pool.append(new_page)
-            index = self.total_page
-            self.total_page += 1
+            index = self.evict()
+            self.pool.insert(index, new_page)
             self.lock.release()
             return index
         else:
@@ -56,7 +54,7 @@ class Bufferpool:
             file.write(str(self.pool[position].data) + '\n')
             file.close()
         self.pool.pop(position)
-        self.total_page -= 1
+        return position
 
     def flush(self):
         for i in range(self.total_page):

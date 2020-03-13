@@ -1,7 +1,7 @@
 # Global Setting for the Database
 # PageSize, StartRID, etc..
 PAGESIZE = 512
-POOLSIZE = 256
+POOLSIZE = 1024
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
 TIMESTAMP_COLUMN = 2
