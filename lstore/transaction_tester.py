@@ -63,3 +63,5 @@ if s != num_committed_transactions * 5:
     print('Expected sum:', num_committed_transactions * 5, ', actual:', s, '. Failed.')
 else:
     print('Pass.')
+
+db.close()

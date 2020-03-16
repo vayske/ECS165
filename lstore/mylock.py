@@ -43,6 +43,6 @@ class MyLock:
 
     def upgrade(self, rid):
         readlock, writelock = self.lock_manage[rid]
-        readlock -= 1
         writelock += 1
         self.lock_manage[rid] = (readlock, writelock)
+        return True

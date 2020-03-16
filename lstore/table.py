@@ -71,15 +71,12 @@ class Table:
                         base_page.tps = i
                         done = False
                         while not done:
-                            if not self.bufferpool.lock.acquire():
-                                continue
                             done = self.bufferpool.replace(base_page)
-                            self.bufferpool.lock.release()
                         sleep(MERGETIME)
         pass
 
     def get_from_disk(self, page_name):
-        while not self.bufferpool.lock.acquire():
+        while not self.bufferpool.lock_buffer():
             sleep(0.5)
         for i in range(self.bufferpool.total_page):
             if self.bufferpool.pool[i].page_name == page_name:
@@ -89,9 +86,8 @@ class Table:
                 new_page.num_records = temp_page.num_records
                 new_page.tps = temp_page.tps
                 new_page.data = temp_page.data
-                self.bufferpool.lock.release()
+                self.bufferpool.unlock_buffer()
                 return new_page
-        self.bufferpool.lock.release()
         file = open(page_name, 'r')
         new_page = Page()
         new_page.page_name = page_name
@@ -99,4 +95,5 @@ class Table:
         new_page.tps = int(file.readline())
         new_page.data = eval(file.readline())
         file.close()
+        self.bufferpool.unlock_buffer()
         return new_page

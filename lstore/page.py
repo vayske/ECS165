@@ -41,7 +41,7 @@ class Page:
         self.pin -= 1
         return value
 
-    def modify(self,slot, value):
+    def modify(self, slot, value):
         self.pin += 1
         position = slot * 8
         value_in_bytes = None
